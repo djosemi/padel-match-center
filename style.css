@@ -1047,3 +1047,54 @@ table.dark-table.ranking-table td:not(:last-child) {
     opacity: 0;
   }
 }
+
+/*
+ * Responsive adjustments for mobile devices.
+ * When the viewport width is 600px or less, many elements are scaled
+ * down and rearranged to better fit small screens.  Images are
+ * set to 100% width with auto height to prevent cropping, option
+ * buttons wrap onto multiple lines, and bracket matches expand to
+ * full width.
+ */
+@media (max-width: 600px) {
+  .card {
+    padding: 0.75rem;
+  }
+
+  /* Ensure hero and banner images fill the available width and maintain aspect ratio */
+  .hero-image,
+  .banner-image {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+  }
+
+  /* Wrap option buttons on small screens */
+  .options-buttons {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  /* Stack bracket rounds vertically */
+  .bracket-round {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .bracket-match {
+    width: 100% !important;
+    margin: 0.5rem 0;
+  }
+
+  /* Adjust header font sizes */
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+  .app-header p {
+    font-size: 0.9rem;
+  }
+
+  .page-header h2 {
+    font-size: 1.4rem;
+  }
+}
