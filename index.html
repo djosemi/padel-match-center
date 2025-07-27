@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Padel Match Center</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Google Fonts for premium look -->
+  <!-- Import Inter for modern premium body text, Montserrat for secondary headings and Playfair Display for primary headings -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-inner">
+      <img src="padelu_logo.png" alt="PadelU logo" class="logo">
+      <div class="header-text">
+        <h1>PadelU Match Center</h1>
+        <p>Create and manage padel matches and tournaments from any device</p>
+      </div>
+    </div>
+  </header>
+  <main>
+    <!-- Page 1: Player management -->
+    <div id="page1">
+      <section id="players-section" class="card">
+        <!-- Decorative ultra‑wide banner on players page -->
+        <img src="players_banner_new.png" alt="Padel banner" class="hero-image">
+        <h2>Players</h2>
+        <div id="players-list"></div>
+        <form id="add-player-form" class="form-inline">
+          <input type="text" id="player-name" placeholder="Enter player name" required>
+          <button type="submit" class="btn primary">Add Player</button>
+        </form>
+        <div class="actions">
+          <button id="to-format-btn" class="btn accent">Next: Setup Tournament</button>
+        </div>
+      </section>
+    </div>
+    <!-- Page 2: Tournament configuration -->
+    <div id="page2" class="hidden">
+      <section id="config-section" class="card">
+        <div class="page-header">
+          <button id="back-to-players" class="btn secondary">← Back</button>
+          <h2>Configure Tournament</h2>
+        </div>
+        <!-- Banner image for configure page -->
+        <img src="config_banner_new.png" alt="Configure banner" class="banner-image">
+        <form id="tournament-form">
+          <label>
+            Tournament type:
+            <!-- Buttons container for selecting tournament format -->
+            <div id="format-options" class="options-buttons"></div>
+            <!-- Hidden select element retains value for form submission -->
+            <select id="tournament-type" required class="hidden">
+              <option value="match">Official Match (4 players)</option>
+              <option value="fixed">Fixed Partner Tournament</option>
+              <option value="rotating">Rotating Partner Tournament</option>
+              <option value="free">Free Game Tournament (manual schedule)</option>
+              <option value="playoff">Playoff Bracket Tournament</option>
+            </select>
+          </label>
+          <div id="match-options" class="tournament-options hidden">
+            <label>
+              Best of sets (1-5):
+              <!-- Buttons container for choosing number of sets -->
+              <div id="match-sets-options" class="options-buttons"></div>
+              <!-- Hidden input to store selected sets value -->
+              <input type="number" id="match-sets" min="1" max="5" value="3" class="hidden">
+            </label>
+          </div>
+          <div id="fixed-options" class="tournament-options hidden">
+            <label>
+              Number of players (6-12, even):
+              <!-- Buttons container for fixed tournament player counts -->
+              <div id="fixed-players-options" class="options-buttons"></div>
+              <!-- Hidden input to store selected number of players -->
+              <input type="number" id="fixed-players" min="6" max="12" step="2" value="6" class="hidden">
+            </label>
+          </div>
+          <div id="rotating-options" class="tournament-options hidden">
+            <label>
+              Number of players (4-12):
+              <!-- Buttons container for rotating tournament player counts -->
+              <div id="rotating-players-options" class="options-buttons"></div>
+              <!-- Hidden input to store selected number of players -->
+              <input type="number" id="rotating-players" min="4" max="12" value="4" class="hidden">
+            </label>
+          </div>
+      <div id="playoff-options" class="tournament-options hidden">
+        <label>
+          Number of players (4-16):
+          <!-- Buttons container for playoff tournament player counts -->
+          <div id="playoff-players-options" class="options-buttons"></div>
+          <!-- Hidden input to store selected number of players -->
+          <input type="number" id="playoff-players" min="4" max="16" value="4" class="hidden">
+        </label>
+      </div>
+          <div id="free-options" class="tournament-options hidden">
+            <label>
+              Number of players (minimum 2):
+              <!-- Buttons container for free tournament player counts -->
+              <div id="free-players-options" class="options-buttons"></div>
+              <!-- Hidden input to store selected number of players -->
+              <input type="number" id="free-players" min="2" value="2" class="hidden">
+            </label>
+          </div>
+          <label>
+            Number of courts:
+            <!-- Buttons container for court selection -->
+            <div id="courts-options" class="options-buttons"></div>
+            <!-- Hidden input to store selected courts value -->
+            <input type="number" id="courts" min="1" value="1" class="hidden">
+          </label>
+          <!-- Scoring type selector: choose between sets or Americano.  Uses button group for a more modern look -->
+          <label>
+            Scoring type:
+            <div id="scoring-options" class="options-buttons"></div>
+            <!-- Hidden input storing current scoring type ("sets" or "americano") -->
+            <input type="hidden" id="scoring-type" value="sets">
+          </label>
+          <!-- Americano points input will be shown only when Americano scoring is selected -->
+          <label id="americano-points-container" class="hidden">
+            Points per Americano match:
+            <input type="number" id="americano-points" min="4" step="4" value="24">
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="use-handicap">
+            Apply handicap? (assign points advantage to certain players)
+          </label>
+          <div id="handicap-options" class="hidden">
+            <p>Enter handicap values for each player (positive values add points):</p>
+            <div id="handicap-list"></div>
+          </div>
+          <button type="submit" class="btn accent">Create Tournament</button>
+        </form>
+      </section>
+    </div>
+    <!-- Page 3: Tournament details, schedule and ranking -->
+    <div id="page3" class="hidden">
+      <section id="management-section" class="card">
+        <div class="page-header">
+          <button id="back-to-config" class="btn secondary">← Back</button>
+          <h2>Match Schedule & Rankings</h2>
+        </div>
+        <!-- Banner image for schedule page -->
+        <img src="schedule_banner_new.png" alt="Schedule banner" class="banner-image">
+        <div id="tournament-info" class="info"></div>
+        <button id="add-match-btn" class="btn accent hidden">Add Match</button>
+        <!-- Button to add a second leg of matches for fixed partner tournaments -->
+        <!-- Button for adding a second leg of matches in fixed partner tournaments -->
+        <button id="second-round-btn" class="btn accent hidden" style="margin-top:0.5rem;">Add Second Leg</button>
+        <!-- Button to finish the tournament and show final classification -->
+        <button id="finish-tournament-btn" class="btn primary hidden" style="margin-top:0.5rem;">Finish Tournament</button>
+        <div id="schedule"></div>
+        <div id="ranking"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

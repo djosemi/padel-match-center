@@ -1,0 +1,1049 @@
+/* Premium styling for PadelU Match Center */
+body {
+  /* Use a clean and modern font family based on Strava style */
+  /* Inter for general body text to ensure legibility and premium feel */
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  /* Light background for a minimalistic premium look */
+  background: #f7f9fb;
+  color: #333;
+}
+
+/* Header with logo and title */
+/* Header with logo and title */
+.app-header {
+  width: 100%;
+  padding: 1rem 2rem;
+  /* Solid coloured bar using the PadelU blue as primary */
+  background: #1976b2;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Apply premium fonts and uppercase styling to main headings */
+.app-header h1,
+.card h2,
+.page-header h2,
+.modal h3,
+.team-select-modal h3,
+.podium-modal h3 {
+  font-family: 'Playfair Display', serif;
+  text-transform: uppercase;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* Adjust logo size for better balance */
+.logo {
+  width: 60px;
+  height: auto;
+  margin-right: 1rem;
+}
+
+/* Title styling */
+.header-text h1 {
+  margin: 0;
+  font-weight: 600;
+  font-size: 1.8rem;
+  color: #fff;
+}
+
+/* Subtitle styling */
+.header-text p {
+  margin: 0;
+  color: #e3f2fd;
+  font-size: 0.9rem;
+}
+
+main {
+  padding: 2rem 1rem;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Card container */
+.card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  width: 100%;
+  max-width: 1000px;
+  color: #333;
+}
+
+.card h2 {
+  margin-top: 0;
+  color: #1976b2;
+  margin-bottom: 1rem;
+}
+
+/* Form inline for player add */
+.form-inline {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+input[type="text"],
+input[type="number"],
+select {
+  background: #f1f5f8;
+  border: 1px solid #cbd5e1;
+  color: #333;
+  border-radius: 6px;
+  padding: 0.6rem;
+  flex: 1;
+  min-width: 0;
+}
+
+input[type="text"]::placeholder {
+  color: #888;
+}
+
+label {
+  color: #555;
+  margin-bottom: 0.4rem;
+  display: block;
+  font-size: 0.9rem;
+}
+
+/* Button styles */
+.btn {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+/* Primary action button uses PadelU blue and green gradient */
+.btn.primary {
+  background: linear-gradient(45deg, #1976b2, #51b58d);
+  color: #fff;
+}
+
+/* Accent button for secondary actions */
+.btn.accent {
+  background: linear-gradient(45deg, #51b58d, #43a047);
+  color: #fff;
+}
+
+/* Secondary button with light grey background */
+.btn.secondary {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.btn.primary:hover,
+.btn.accent:hover {
+  opacity: 0.9;
+}
+
+.btn.secondary:hover {
+  background: #d5d5d5;
+}
+
+/* Icon button styling inspired by premium fitness apps */
+.icon-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  font-size: 0.8rem;
+  line-height: 1.2;
+}
+.icon-btn .btn-icon {
+  font-size: 1.3rem;
+}
+.icon-btn .btn-label {
+  font-size: 0.7rem;
+}
+
+/* Progress bar for tournament progress */
+.round-progress {
+  margin: 0.5rem 0;
+}
+.progress-bar {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.progress-bar .progress {
+  height: 100%;
+  background: linear-gradient(45deg, #51b58d, #43a047);
+  border-radius: 4px;
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+/* Highlight the currently selected score display */
+.score-display.active {
+  border: 2px solid #1976b2;
+  border-radius: 4px;
+}
+
+/* Input for Americano points: styled to harmonise with score displays */
+.score-input {
+  width: 3rem;
+  padding: 0.4rem;
+  font-size: 1rem;
+  text-align: center;
+  border: 2px solid #1976b2;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #333;
+  /* Override global flex from input[type=number] so the input does not stretch */
+  flex: none;
+}
+
+/* Display for Americano scoring (Team B points) to match the input styling */
+.americano-display {
+  width: 3rem;
+  padding: 0.4rem;
+  font-size: 1rem;
+  text-align: center;
+  border: 2px solid #1976b2;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #333;
+  display: inline-block;
+}
+
+
+/* Completed match styling */
+.completed-match {
+  background: #f1faf2;
+}
+.completed-match td {
+  border-left: 4px solid #51b58d;
+}
+.completed-icon {
+  margin-left: 0.4rem;
+  color: #43a047;
+  font-size: 1rem;
+}
+
+/* Styling for score summaries in the schedule table */
+.score-summary {
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+}
+
+/* Players list */
+#players-list div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f1f5f8;
+  padding: 0.5rem 0.7rem;
+  margin-bottom: 0.5rem;
+  border-radius: 6px;
+}
+
+#players-list div span.name {
+  flex: 1;
+  color: #333;
+}
+
+.delete-player {
+  background: none;
+  border: none;
+  color: #e53935;
+  font-size: 1.2rem;
+  cursor: pointer;
+  line-height: 1;
+  margin-left: 0.5rem;
+}
+
+.delete-player:hover {
+  color: #c62828;
+}
+
+/* Checkbox alignment */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* Table styling */
+/*
+ * Table styling: default light theme tables have been replaced by a dark table style
+ * that better matches the premium look inspired by professional sports apps. The
+ * dark table uses a navy gradient with turquoise accents for headers and row
+ * separators. The `.dark-table` class can be applied to any table to enable
+ * this look, while the old table styles remain for simple forms or lists.
+ */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+table.dark-table {
+  /* Gradient background from deep navy to dark blue */
+  background: linear-gradient(to bottom, #061d3a 0%, #003366 100%);
+  color: #e3f2fd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+table.dark-table th,
+table.dark-table td {
+  padding: 0.6rem 0.8rem;
+}
+
+table.dark-table th {
+  background: #007a9c;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  border-bottom: 2px solid #006280;
+}
+
+/* Ranking tables do not show vertical borders between columns */
+table.ranking-table th:not(:last-child),
+table.ranking-table td:not(:last-child) {
+  border-right: none;
+}
+
+/* Match tables still show vertical separators to delineate sets and points */
+table.match-table th:not(:last-child),
+table.match-table td:not(:last-child) {
+  border-right: 1px solid #004f70;
+}
+
+/* Separator between player lines in match table */
+.player-sep {
+  display: block;
+  border-top: 1px solid #004f70;
+  margin: 0.3rem 0;
+}
+
+/* Center align and enlarge scores in match table */
+table.match-table td {
+  text-align: center;
+  vertical-align: middle;
+  /* Enlarge font for score cells to improve readability */
+  font-weight: 600;
+}
+
+table.dark-table td {
+  border-bottom: 1px solid #004f70;
+  background-color: transparent;
+}
+
+/* Add vertical separators between columns for dark tables */
+table.dark-table th:not(:last-child),
+table.dark-table td:not(:last-child) {
+  border-right: 1px solid #004f70;
+}
+
+table.dark-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* For ranking tables with dark theme, remove vertical separators completely */
+table.dark-table.ranking-table th:not(:last-child),
+table.dark-table.ranking-table td:not(:last-child) {
+  border-right: none;
+}
+
+/* Bracket layout for playoff tournaments */
+.bracket-container {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  overflow-x: auto;
+  padding-bottom: 1rem;
+}
+
+.bracket-round {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.bracket-round h3 {
+  margin-bottom: 0.5rem;
+  color: #e3f2fd;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
+/*
+ * Bracket match styling
+ *
+ * The playoff bracket boxes act as miniature scoreboards for each match.  To
+ * make them feel more like the example provided, the boxes are slightly
+ * narrower and shorter and use a lighter gradient.  Increasing the
+ * contrast and reducing padding yields a compact, readable layout that
+ * resembles the match table used elsewhere in the app.
+ */
+.bracket-match {
+  /* A subtle gradient reminiscent of the schedule rows */
+  background: linear-gradient(to bottom, #04345f 0%, #062d53 100%);
+  border: 1px solid #026fa3;
+  border-radius: 6px;
+  /* Compact spacing */
+  padding: 0.35rem 0.5rem;
+  margin-bottom: 0.5rem;
+  width: 150px;
+  color: #e3f2fd;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.bracket-match.completed-match {
+  /* Slightly highlight completed matches */
+  border-color: #00bcd4;
+}
+
+.bracket-players {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.3rem;
+}
+
+.bracket-player {
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  margin: 0.1rem 0;
+}
+
+/*
+ * Score summary inside a bracket match.
+ *
+ * Increase the font size and weight, and use a lighter colour to draw
+ * attention to the results.  Sets are separated by two spaces, so the
+ * numbers remain grouped.  If an Americano match is played, the two
+ * points are displayed with a dash between them.
+ */
+.bracket-score {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #b3e5fc;
+  margin-bottom: 0.1rem;
+  text-align: center;
+}
+
+/*
+ * Winner indicator for a bracket match.
+ *
+ * Display a bold "1" for the winning team and "0" for the losing team.
+ * Use a slightly larger font and a contrasting colour to help the
+ * indicator stand out.  When no score is present this area remains
+ * blank.
+ */
+.bracket-game {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #80cbc4;
+  margin-bottom: 0.25rem;
+  text-align: center;
+}
+
+.bracket-actions {
+  display: flex;
+  justify-content: center;
+}
+.bracket-actions .btn {
+  font-size: 0.7rem;
+  margin: 0 0.1rem;
+  padding: 0.25rem 0.4rem;
+}
+
+/*
+ * Detailed set display within bracket matches.
+ *
+ * Each match may have one or more sets (or points in Americano).  The
+ * `.bracket-sets` container lays out each set as a column of two
+ * numbers: the top representing Team A's games and the bottom
+ * representing Team B's games.  Columns are spaced evenly and
+ * vertically aligned to the centre of the match box.  When no score
+ * exists the container remains but is empty (see `empty-sets`).
+ */
+.bracket-sets {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.3rem;
+  gap: 0.35rem;
+}
+.bracket-sets.empty-sets {
+  /* Maintain space for consistency when no score is present */
+  min-height: 1.2rem;
+}
+.set-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.set-cell {
+  font-size: 0.95rem;
+  font-weight: 700;
+  /* Use a bright colour for set scores so they stand out clearly on the dark
+     background.  White provides maximum contrast while still working well
+     with the blue gradient. */
+  color: #ffffff;
+  line-height: 1.1;
+}
+
+/* Highlight winner and dim loser names within a bracket match */
+.winner {
+  font-weight: 700;
+  /* Brighten the winning team's name for emphasis */
+  color: #ffffff;
+}
+.loser {
+  /* Dim the losing team's name slightly but keep it readable */
+  opacity: 0.6;
+  color: #9dbbd8;
+}
+
+/* Highlight selected players in team selection overlays.  The "active"
+   class is added to buttons when they are chosen for a team.  Change the
+   background to green and text to white to provide clear visual feedback. */
+/*
+ * Highlight selected buttons when forming teams or assigning players.
+ * The "active" class is toggled on buttons in the manual team and playoff
+ * selection overlays.  Provide a green background and white text to
+ * clearly indicate selection.  Target both generic .btn.active and
+ * more specific contexts (e.g. .team-list) to ensure highlighting works
+ * regardless of container structure.
+ */
+.team-list .btn.active,
+.team-list .btn.active:disabled,
+.modal .btn.active,
+.modal .btn.active:disabled {
+  /* Highlight selected players with a vivid green background and white text.  Apply
+     even when the button is disabled so that selections remain clearly
+     visible.  Also reset the default disabled opacity so that the colour
+     shows through. */
+  background-color: #4caf50 !important;
+  color: #fff !important;
+  border-color: #4caf50 !important;
+  opacity: 1 !important;
+}
+
+/* Column alignment helpers for ranking tables */
+.rank-col {
+  width: 3.5rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+.mood-col {
+  width: 2.5rem;
+  text-align: center;
+}
+
+.name-col {
+  min-width: 6rem;
+  font-weight: 500;
+}
+
+.stat-col {
+  text-align: center;
+  min-width: 3.5rem;
+}
+
+/* Completed match row: use a dark teal highlight instead of light green */
+.completed-match {
+  background: rgba(0, 128, 96, 0.2);
+}
+.completed-match td {
+  border-left: 4px solid #43a047;
+}
+.completed-icon {
+  margin-left: 0.4rem;
+  color: #43a047;
+  font-size: 1rem;
+}
+
+
+/* Round title spacing */
+#schedule > div > h3 {
+  margin-top: 1rem;
+  color: #1976b2;
+}
+
+/* Page2 header */
+.page2-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+/* Generic page header used in configuration and management sections */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+/* Hero image on player page */
+.hero-image {
+  width: 100%;
+  max-height: 250px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Banner images for configure and schedule pages (ultra‑wide aesthetic) */
+.banner-image {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Actions container for navigation buttons */
+.actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Adjust select and number input width within configuration forms */
+#config-section select,
+#config-section input[type="number"] {
+  width: 100%;
+}
+
+/* Hidden helper */
+.hidden {
+  display: none !important;
+}
+
+/* Options buttons for selecting numeric values in config */
+.options-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+}
+
+.options-buttons button {
+  background: #e0e0e0;
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.options-buttons button:hover {
+  background: #d5d5d5;
+}
+
+.options-buttons button.active {
+  background: linear-gradient(45deg, #51b58d, #43a047);
+  color: #fff;
+}
+
+/* Modal overlay for interactive score entry, team selection and final podium */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Generic modal container */
+.modal,
+.team-select-modal,
+.podium-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  position: relative;
+  animation: fadeInScale 0.3s ease;
+  text-align: center;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Title inside modals */
+.modal h3,
+.team-select-modal h3,
+.podium-modal h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #1976b2;
+  font-weight: 600;
+}
+
+/* Score input containers */
+.score-input-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.score-display {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #1976b2;
+  background: #f1f5f8;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+}
+
+.keypad,
+.keypad-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
+  justify-content: center;
+}
+
+.key-btn {
+  background: #e0e0e0;
+  border: none;
+  border-radius: 4px;
+  padding: 0.4rem 0.6rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.key-btn:hover {
+  background: #d5d5d5;
+}
+
+/* Set list and row formatting */
+.set-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.set-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+.score-colon {
+  font-size: 2rem;
+  color: #333;
+}
+
+/* Modal footer buttons */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* Team selection styles */
+.team-select-modal .team-slots {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  margin-bottom: 1rem;
+}
+
+.team-slot {
+  flex: 1;
+  background: #f1f5f8;
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 0.8rem;
+  text-align: center;
+  cursor: pointer;
+  min-height: 50px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.team-slot.selected {
+  border-style: solid;
+  border-color: #1976b2;
+  background: #e3f2fd;
+}
+
+.vs-text {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1976b2;
+  margin: 0 0.5rem;
+}
+
+.player-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+  justify-content: center;
+}
+
+.player-button {
+  background: #e0e0e0;
+  border: none;
+  border-radius: 4px;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.player-button.selected {
+  background: #43a047;
+  color: #fff;
+}
+
+.player-button:hover {
+  background: #d5d5d5;
+}
+
+/* Podium styles */
+.podium-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.podium-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0.5rem;
+}
+
+/* Order the podium items so that first is centered */
+.podium-item.first {
+  order: 2;
+}
+.podium-item.second {
+  order: 1;
+}
+.podium-item.third {
+  order: 3;
+}
+
+.podium-item .step {
+  background: #e0e0e0;
+  border-radius: 8px;
+  width: 100%;
+  padding: 1rem 0;
+  margin-top: 0.5rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.podium-item.first .step {
+  height: 120px;
+  background: linear-gradient(45deg, #ffd700, #ffea70);
+}
+.podium-item.second .step {
+  height: 90px;
+  background: linear-gradient(45deg, #c0c0c0, #e0e0e0);
+}
+.podium-item.third .step {
+  height: 70px;
+  background: linear-gradient(45deg, #cd7f32, #d18a5b);
+}
+
+/* Animate podium container sliding and bouncing into view */
+@keyframes podium-entrance {
+  0% {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Apply entrance animation to the podium container */
+.podium-modal .podium-container {
+  animation: podium-entrance 0.8s ease;
+}
+
+.podium-name {
+  /* Place the name at the bottom of the step */
+  margin-top: auto;
+  margin-bottom: 0;
+  font-weight: 700;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+/* Position number beneath the winner's name on the podium */
+.podium-position {
+  font-weight: 600;
+  color: #555;
+  font-size: 0.9rem;
+  margin-top: 0.2rem;
+}
+
+.podium-medal {
+  font-size: 2rem;
+}
+
+.podium-trophy {
+  font-size: 3rem;
+  margin-top: 0.5rem;
+  color: #1976b2;
+}
+
+/* Highlight winner team in schedule */
+.winner-team {
+  color: #1976b2;
+  font-weight: 600;
+}
+
+/* Highlight winning score in result cell */
+.winner-score {
+  color: #1976b2;
+  font-weight: 600;
+}
+
+/* Highlight the top row in ranking table */
+.winner-row td {
+  /* Highlight the top row in ranking table with a subtle turquoise overlay on dark background */
+  background: rgba(0, 122, 172, 0.25);
+  font-weight: 600;
+}
+
+/* Animation for list items sliding in */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+#players-list div {
+  animation: slideIn 0.3s ease forwards;
+}
+
+/* Add subtle scale effect when pressing buttons */
+.btn:active {
+  transform: scale(0.97);
+}
+
+/* Images used in icon buttons should fit nicely */
+.btn-icon-img {
+  width: 1.2rem;
+  height: 1.2rem;
+  vertical-align: middle;
+}
+
+/* Trophy bounce animation for victory screen */
+@keyframes trophy-bounce {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Apply bounce animation to the trophy icon when podium appears */
+.podium-modal .podium-trophy {
+  animation: trophy-bounce 0.8s ease;
+}
+
+/* Confetti animation for victory */
+.confetti-piece {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  opacity: 0.8;
+  pointer-events: none;
+  animation: confetti-fall 2.5s linear forwards;
+}
+
+@keyframes confetti-fall {
+  from {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
