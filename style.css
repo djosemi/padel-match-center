@@ -1086,6 +1086,38 @@ table.dark-table.ranking-table td:not(:last-child) {
     margin: 0.5rem 0;
   }
 
+  /* On very small screens hide the large hero/banner imagery to free up vertical space.
+     The large header images look great on desktops but consume too much space on
+     mobile devices.  We collapse the hero image entirely and shrink the banner
+     height to keep some visual separation without forcing the user to scroll
+     past an enormous photo. */
+  .hero-image {
+    display: none;
+  }
+  .banner-image {
+    height: 80px;
+    object-fit: cover;
+  }
+
+  /* Make schedule and ranking tables horizontally scrollable on small screens.
+     Without this, the number of columns (sets, games, statistics) can exceed
+     the viewport width and cause content to be clipped.  Setting overflow
+     allows the user to swipe horizontally to view all data. */
+  #schedule {
+    overflow-x: auto;
+  }
+  table.match-table,
+  table.ranking-table {
+    min-width: 600px;
+    font-size: 0.75rem;
+  }
+  table.match-table th,
+  table.match-table td,
+  table.ranking-table th,
+  table.ranking-table td {
+    padding: 0.4rem 0.5rem;
+  }
+
   /* Adjust header font sizes */
   .app-header h1 {
     font-size: 1.5rem;
