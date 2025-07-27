@@ -1173,6 +1173,312 @@ function finalizeFixedTournament(teams, schedule, infoHtml, sets, useAmericano, 
   page3.classList.remove('hidden');
 }
 
+/*
+ * Present the organiser with options for creating a playoff bracket tournament.
+ * There are three modes:
+ *  1. Manual teams & manual placement: participants are selected into teams
+ *     and the organiser chooses where each team goes in the bracket (status quo).
+ *  2. Manual teams & random placement: participants are selected into teams
+ *     manually but teams are assigned randomly to the bracket positions.
+ *  3. Random teams & random placement: both the formation of teams and their
+ *     placement in the bracket are random.
+ * After the user makes a choice, the appropriate helper is invoked to
+ * construct the tournament object and display the bracket.
+ */
+function openPlayoffOptionChoice(selectedPlayers, numPlayers, sets, useAmericano, americanoPoints, useHandicap, courts) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  overlay.appendChild(modal);
+  const title = document.createElement('h3');
+  title.textContent = 'Select playoff mode';
+  modal.appendChild(title);
+  // Description text
+  const desc = document.createElement('p');
+  desc.textContent = 'Choose how teams are formed and placed in the bracket:';
+  desc.style.marginBottom = '1rem';
+  modal.appendChild(desc);
+  // Container for buttons
+  const btnContainer = document.createElement('div');
+  btnContainer.style.display = 'flex';
+  btnContainer.style.flexDirection = 'column';
+  btnContainer.style.gap = '0.5rem';
+  modal.appendChild(btnContainer);
+  // Helper to close overlay
+  const closeOverlay = () => overlay.remove();
+  // Manual teams & manual placement button
+  const manualManualBtn = document.createElement('button');
+  manualManualBtn.className = 'btn primary';
+  manualManualBtn.textContent = 'Manual teams & manual placement';
+  manualManualBtn.addEventListener('click', () => {
+    closeOverlay();
+    // Mode 1: create empty bracket and allow organiser to assign teams manually
+    createPlayoffManualManual(selectedPlayers, numPlayers, sets, useAmericano, americanoPoints, useHandicap, courts);
+  });
+  btnContainer.appendChild(manualManualBtn);
+  // Manual teams & random placement
+  const manualRandomBtn = document.createElement('button');
+  manualRandomBtn.className = 'btn primary';
+  manualRandomBtn.textContent = 'Manual teams & random placement';
+  manualRandomBtn.addEventListener('click', () => {
+    closeOverlay();
+    // Mode 2: form teams manually then assign randomly to the bracket
+    openPlayoffManualTeamSelection(selectedPlayers, numPlayers, sets, useAmericano, americanoPoints, useHandicap, courts, true);
+  });
+  btnContainer.appendChild(manualRandomBtn);
+  // Random teams & random placement
+  const randomRandomBtn = document.createElement('button');
+  randomRandomBtn.className = 'btn primary';
+  randomRandomBtn.textContent = 'Random teams & random placement';
+  randomRandomBtn.addEventListener('click', () => {
+    closeOverlay();
+    // Mode 3: automatically form random teams and assign to bracket
+    createPlayoffRandom(selectedPlayers, numPlayers, sets, useAmericano, americanoPoints, useHandicap, courts);
+  });
+  btnContainer.appendChild(randomRandomBtn);
+  // Cancel button
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn secondary';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', closeOverlay);
+  btnContainer.appendChild(cancelBtn);
+  document.body.appendChild(overlay);
+}
+
+/*
+ * Mode 1: manual teams & manual placement.  This replicates the existing
+ * behaviour for playoff tournaments: an empty bracket is created and
+ * participants may be assigned to matches via the “Select teams” buttons.
+ */
+function createPlayoffManualManual(selectedPlayers, numPlayers, sets, useAmericano, americanoPoints, useHandicap, courts) {
+  // Generate an empty bracket sized for the players
+  const schedule = generateEmptyBracket(numPlayers);
+  // Prepare tournament state: teams are empty, players will be assigned manually
+  tournament = {
+    type: 'playoff',
+    teams: [],
+    schedule,
+    sets,
+    useAmericano,
+    americanoPoints,
+    useHandicap,
+    courts,
+    unassignedPlayers: selectedPlayers.slice(),
+    assignedPlayers: [],
+    nextTeamId: 0,
+  };
+  // Inform the user about potential number of teams
+  tournamentInfoEl.innerHTML = `<p>Playoff bracket tournament with ${numPlayers / 2} potential teams. Select players to form teams for each match.</p>`;
+  // Render bracket and hide ranking (handled in updateRankingAndSchedule)
+  displaySchedule(schedule);
+  updateRankingAndSchedule();
+  // Show appropriate buttons
+  addMatchBtn.classList.add('hidden');
+  finishTournamentBtn.classList.remove('hidden');
+  secondRoundBtn.classList.add('hidden');
+  // Navigate to schedule page
+  page2.classList.add('hidden');
+  page3.classList.remove('hidden');
+}
+
+/*
+ * Mode 2: manual teams & random placement.  This helper presents a team
+ * selection overlay similar to fixed partner tournaments.  Once teams are
+ * selected, they are shuffled and assigned to the bracket positions.
+ */
+function openPlayoffManualTeamSelection(selectedPlayers, numPlayers, sets, useAmericano, americanoPoints, useHandicap, courts, randomPlacement) {
+  const numTeams = numPlayers / 2;
+  // State: team slots and assigned players
+  const teamSlots = Array.from({ length: numTeams }, () => []);
+  let currentTeam = 0;
+  // Create overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  overlay.appendChild(modal);
+  const title = document.createElement('h3');
+  title.textContent = 'Select players for each team';
+  modal.appendChild(title);
+  // Container for team boxes
+  const teamsContainer = document.createElement('div');
+  teamsContainer.style.display = 'flex';
+  teamsContainer.style.flexWrap = 'wrap';
+  teamsContainer.style.gap = '1rem';
+  modal.appendChild(teamsContainer);
+  const teamBoxes = [];
+  for (let i = 0; i < numTeams; i++) {
+    const box = document.createElement('div');
+    box.style.border = '2px dashed #90caf9';
+    box.style.borderRadius = '6px';
+    box.style.padding = '0.8rem';
+    box.style.minWidth = '140px';
+    box.style.minHeight = '60px';
+    box.style.flex = '1 1 45%';
+    const label = document.createElement('div');
+    label.style.fontWeight = '600';
+    label.style.marginBottom = '0.4rem';
+    label.textContent = `Team ${String.fromCharCode(65 + i)}`;
+    box.appendChild(label);
+    const namesDiv = document.createElement('div');
+    namesDiv.className = 'team-names';
+    namesDiv.style.minHeight = '1.2rem';
+    namesDiv.style.fontSize = '0.9rem';
+    namesDiv.style.fontWeight = '600';
+    namesDiv.textContent = '';
+    box.appendChild(namesDiv);
+    teamBoxes.push({ box, namesDiv });
+    teamsContainer.appendChild(box);
+  }
+  // Player buttons
+  const listContainer = document.createElement('div');
+  listContainer.style.marginTop = '1rem';
+  listContainer.style.display = 'flex';
+  listContainer.style.flexWrap = 'wrap';
+  listContainer.style.gap = '0.5rem';
+  modal.appendChild(listContainer);
+  const playerButtons = new Map();
+  selectedPlayers.forEach((player) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn secondary';
+    btn.textContent = player.name;
+    btn.style.margin = '0.2rem';
+    btn.addEventListener('click', () => {
+      if (btn.disabled) return;
+      if (currentTeam >= numTeams) return;
+      if (teamSlots[currentTeam].length >= 2) return;
+      teamSlots[currentTeam].push(player);
+      btn.disabled = true;
+      btn.classList.add('active');
+      const slotNames = teamSlots[currentTeam].map((p) => p.name).join(' & ');
+      teamBoxes[currentTeam].namesDiv.textContent = slotNames;
+      if (teamSlots[currentTeam].length === 2) {
+        currentTeam++;
+      }
+      if (confirmBtn) {
+        const allFilled = teamSlots.every((arr) => arr.length === 2);
+        confirmBtn.disabled = !allFilled;
+      }
+    });
+    listContainer.appendChild(btn);
+    playerButtons.set(player.id, btn);
+  });
+  // Footer
+  const footer = document.createElement('div');
+  footer.style.display = 'flex';
+  footer.style.justifyContent = 'flex-end';
+  footer.style.gap = '0.5rem';
+  footer.style.marginTop = '1rem';
+  modal.appendChild(footer);
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn secondary';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', () => {
+    overlay.remove();
+  });
+  footer.appendChild(cancelBtn);
+  const confirmBtn = document.createElement('button');
+  confirmBtn.className = 'btn primary';
+  confirmBtn.textContent = 'Confirm';
+  confirmBtn.disabled = true;
+  confirmBtn.addEventListener('click', () => {
+    // Create team objects
+    const teams = teamSlots.map((slot, idx) => {
+      const id = `team${idx}`;
+      return { id, name: `${slot[0].name} & ${slot[1].name}`, players: [slot[0], slot[1]] };
+    });
+    // Randomly shuffle teams if requested
+    const shuffled = randomPlacement ? shuffle(teams.slice()) : teams;
+    // Build an empty bracket and assign teams to matches
+    const schedule = generateEmptyBracket(numPlayers);
+    // Assign teams to first round matches
+    const firstRound = schedule[0];
+    for (let i = 0; i < firstRound.length; i++) {
+      const match = firstRound[i];
+      const teamA = shuffled[i * 2] || null;
+      const teamB = shuffled[i * 2 + 1] || null;
+      match.teamA = teamA;
+      match.teamB = teamB;
+    }
+    // Create tournament object
+    tournament = {
+      type: 'playoff',
+      teams,
+      schedule,
+      sets,
+      useAmericano,
+      americanoPoints,
+      useHandicap,
+      courts,
+    };
+    // Propagate byes automatically to fill later rounds
+    propagateByesAll(schedule);
+    // Info text
+    tournamentInfoEl.innerHTML = `<p>Playoff bracket tournament with ${numTeams} teams.</p>`;
+    // Display schedule and update ranking
+    displaySchedule(schedule);
+    updateRankingAndSchedule();
+    // Show and hide appropriate buttons
+    addMatchBtn.classList.add('hidden');
+    finishTournamentBtn.classList.remove('hidden');
+    secondRoundBtn.classList.add('hidden');
+    // Switch to schedule page
+    page2.classList.add('hidden');
+    page3.classList.remove('hidden');
+    overlay.remove();
+  });
+  footer.appendChild(confirmBtn);
+  document.body.appendChild(overlay);
+}
+
+/*
+ * Mode 3: random teams & random placement.  Automatically form teams by
+ * shuffling the selected players and pairing them, then assign teams
+ * randomly to bracket positions.
+ */
+function createPlayoffRandom(selectedPlayers, numPlayers, sets, useAmericano, americanoPoints, useHandicap, courts) {
+  // Shuffle players and pair them into teams
+  const shuffledPlayers = shuffle(selectedPlayers.slice());
+  const teams = [];
+  for (let i = 0; i < shuffledPlayers.length; i += 2) {
+    const p1 = shuffledPlayers[i];
+    const p2 = shuffledPlayers[i + 1];
+    const id = `team${i / 2}`;
+    teams.push({ id, name: `${p1.name} & ${p2.name}`, players: [p1, p2] });
+  }
+  // Shuffle teams to randomise bracket placement
+  const shuffledTeams = shuffle(teams.slice());
+  // Build empty bracket
+  const schedule = generateEmptyBracket(numPlayers);
+  const firstRound = schedule[0];
+  for (let i = 0; i < firstRound.length; i++) {
+    const match = firstRound[i];
+    match.teamA = shuffledTeams[i * 2] || null;
+    match.teamB = shuffledTeams[i * 2 + 1] || null;
+  }
+  tournament = {
+    type: 'playoff',
+    teams,
+    schedule,
+    sets,
+    useAmericano,
+    americanoPoints,
+    useHandicap,
+    courts,
+  };
+  propagateByesAll(schedule);
+  tournamentInfoEl.innerHTML = `<p>Playoff bracket tournament with ${numPlayers / 2} teams (randomised).</p>`;
+  displaySchedule(schedule);
+  updateRankingAndSchedule();
+  addMatchBtn.classList.add('hidden');
+  finishTournamentBtn.classList.remove('hidden');
+  secondRoundBtn.classList.add('hidden');
+  page2.classList.add('hidden');
+  page3.classList.remove('hidden');
+}
+
 // Compute ranking for tournaments with fixed partner or match type (based on wins and sets)
 function computeRankingFixed(schedule) {
   // Map storing aggregated statistics for each team
@@ -1473,6 +1779,16 @@ function displaySchedule(schedule) {
     headerRow.appendChild(thActions);
     thead.appendChild(headerRow);
     table.appendChild(thead);
+    // Tag tables by scoring type for responsive CSS (sets vs. Americano).  This
+    // allows the stylesheet to selectively hide columns on mobile without
+    // inadvertently removing the actions column for Americano matches.  See
+    // @media rules in style.css for details.  We add a custom class in
+    // addition to the existing match-table class.
+    if (isAmericano) {
+      table.classList.add('americano-table');
+    } else {
+      table.classList.add('sets-table');
+    }
     // Body
     const tbody = document.createElement('tbody');
     roundMatches.forEach((match, idx) => {
@@ -2156,25 +2472,33 @@ function displayRanking(ranking, isRotating) {
   table.className = 'dark-table ranking-table';
   const thead = document.createElement('thead');
   const trh = document.createElement('tr');
+  /*
+   * Build the table header based on the tournament type.  We no longer
+   * include a “Mood” column, as requested by the user.  For rotating
+   * tournaments (player‑based ranking), we show either points/game statistics
+   * or matches/wins/losses with average points when Americano scoring is
+   * enabled.  For fixed or official tournaments, we include match counts,
+   * wins/losses, winning percentage, sets, games and game difference.
+   */
   if (isRotating) {
-    // Determine if Americano scoring is selected; adjust columns accordingly
     if (tournament && tournament.useAmericano) {
-      ['Rank', 'Mood', 'Player', 'Matches', 'Wins', 'Losses', 'Avg Points'].forEach((txt) => {
+      // Americano rotating: rank, player, matches, wins, losses, average points
+      ['Rank', 'Player', 'Matches', 'Wins', 'Losses', 'Avg Points'].forEach((txt) => {
         const th = document.createElement('th');
         th.textContent = txt;
         trh.appendChild(th);
       });
     } else {
-      // Sets or free: show points and game difference
-      ['Rank', 'Mood', 'Player', 'Points', 'Games Won', 'Games Lost', 'Game ±'].forEach((txt) => {
+      // Sets or free rotating: rank, player, points (sets won), games won/lost and difference
+      ['Rank', 'Player', 'Points', 'Games Won', 'Games Lost', 'Game ±'].forEach((txt) => {
         const th = document.createElement('th');
         th.textContent = txt;
         trh.appendChild(th);
       });
     }
   } else {
-    // Fixed/official tournaments: include win percentage column
-    ['Rank', 'Mood', 'Team', 'Matches', 'Wins', 'Losses', 'Win %', 'Sets Won', 'Sets Lost', 'Games Won', 'Games Lost', 'Game ±'].forEach((txt) => {
+    // Fixed/official tournaments: rank, team, matches, wins, losses, win%, sets won/lost, games won/lost, game difference
+    ['Rank', 'Team', 'Matches', 'Wins', 'Losses', 'Win %', 'Sets Won', 'Sets Lost', 'Games Won', 'Games Lost', 'Game ±'].forEach((txt) => {
       const th = document.createElement('th');
       th.textContent = txt;
       trh.appendChild(th);
@@ -2191,21 +2515,9 @@ function displayRanking(ranking, isRotating) {
     // Use ordinal indicator for rank (e.g., 1º, 2º)
     rankTd.textContent = `${index + 1}º`;
     tr.appendChild(rankTd);
-    // Mood column with custom icon
-    const moodTd = document.createElement('td');
-    moodTd.className = 'mood-col';
-    const moodImg = document.createElement('img');
-    const total = ranking.length;
-    const moodFile = getRankIcon(index, total);
-    moodImg.src = moodFile;
-    moodImg.alt = '';
-    moodImg.style.width = '24px';
-    moodImg.style.height = '24px';
-    moodTd.appendChild(moodImg);
-    tr.appendChild(moodTd);
-    // Name column (uppercase for premium feel)
+    // Name/Team column: display the name in uppercase for a premium feel.
     const nameTd = document.createElement('td');
-    nameTd.className = 'name-col';
+    nameTd.className = isRotating ? 'name-col' : 'name-col';
     nameTd.textContent = entry.name.toUpperCase();
     tr.appendChild(nameTd);
     if (isRotating) {
@@ -2706,30 +3018,15 @@ tournamentForm.addEventListener('submit', (e) => {
       alert(`You need at least ${numPlayers} players.`);
       return;
     }
-    // Select participants.  We do not shuffle here because the user will manually
-    // assign players to teams in the bracket.  We simply take the first
-    // numPlayers players from the list.  If players have been added in any
-    // particular order, that order will determine their availability in the
-    // selection overlay.
+    // Select participants.  Do not shuffle here; the organiser will decide how
+    // to form teams or randomisation will occur in subsequent options.
     const selected = players.slice(0, numPlayers);
-    // Generate an empty bracket structure sized appropriately for the given
-    // number of players.  Teams will be created by the user later via the
-    // “Select teams” buttons in the bracket.
-    schedule = generateEmptyBracket(numPlayers);
-    teams = [];
-    // Prepare tournament state for manual team assignment.  We copy the
-    // selected participants into a separate array so that we can mark them
-    // as assigned when they are placed into a team.  We also track assigned
-    // players and provide a counter for generating unique team IDs.
-    infoHtml = `<p>Playoff bracket tournament with ${numPlayers / 2} potential teams. Select players to form teams for each match.</p>`;
-    // We will assign these properties to the tournament object after it is
-    // constructed below.  Because tournament is not yet created, we store
-    // them temporarily on a local object and merge in later.
-    tempPlayoffState = {
-      unassignedPlayers: selected.slice(),
-      assignedPlayers: [],
-      nextTeamId: 0,
-    };
+    // Instead of immediately creating the bracket, present the organiser
+    // with playoff options (manual/manual, manual/random or random/random).
+    openPlayoffOptionChoice(selected, numPlayers, sets, useAmericano, americanoPoints, useHandicap, courts);
+    // Do not proceed further in this handler; the overlay will handle
+    // creation of the playoff tournament once an option is selected.
+    return;
   }
   // Create tournament object
   tournament = {
