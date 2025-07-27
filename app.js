@@ -93,6 +93,87 @@ if (secondRoundBtn) {
   });
 }
 
+// Handle import list button on the players page.  This opens a modal where
+// users can paste or type a list of names separated by commas, newlines or
+// numbered bullets.  The names will be parsed and added to the players
+// array automatically.  The modal is created dynamically and removed
+// after use.
+const importListBtn = document.getElementById('import-list-btn');
+if (importListBtn) {
+  importListBtn.addEventListener('click', () => {
+    openImportPlayersModal();
+  });
+}
+
+function openImportPlayersModal() {
+  // Create overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  // Create modal container
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  // Title
+  const title = document.createElement('h3');
+  title.textContent = 'Import Players';
+  modal.appendChild(title);
+  // Instructions
+  const instructions = document.createElement('p');
+  instructions.style.fontSize = '0.9rem';
+  instructions.style.marginBottom = '0.5rem';
+  instructions.textContent = 'Paste or type player names separated by commas or line breaks. Numbers or bullets will be ignored.';
+  modal.appendChild(instructions);
+  // Text area for names
+  const textarea = document.createElement('textarea');
+  textarea.style.width = '100%';
+  textarea.style.height = '120px';
+  textarea.style.resize = 'vertical';
+  textarea.placeholder = 'e.g. Alice, Bob, Charlie\n1. David\n2) Eve\nFrank';
+  modal.appendChild(textarea);
+  // Action buttons container
+  const actions = document.createElement('div');
+  actions.style.display = 'flex';
+  actions.style.justifyContent = 'space-evenly';
+  actions.style.marginTop = '1rem';
+  // Cancel button
+  const cancel = document.createElement('button');
+  cancel.className = 'btn secondary';
+  cancel.textContent = 'Cancel';
+  cancel.addEventListener('click', () => {
+    document.body.removeChild(overlay);
+  });
+  actions.appendChild(cancel);
+  // Confirm button
+  const confirm = document.createElement('button');
+  confirm.className = 'btn primary';
+  confirm.textContent = 'Add Players';
+  confirm.addEventListener('click', () => {
+    const text = textarea.value;
+    if (text) {
+      // Split on commas and newlines
+      let names = text.split(/[,\n]+/);
+      names = names
+        .map((n) => n.trim())
+        .filter((n) => n.length > 0)
+        .map((n) => {
+          // Remove leading numbers and punctuation (e.g. "1. ", "2) ")
+          return n.replace(/^\d+\s*[\.\)\-:]?\s*/, '').trim();
+        });
+      names.forEach((name) => {
+        // Avoid adding duplicate names (case insensitive)
+        if (!players.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
+          players.push({ id: Date.now() + Math.random(), name, handicap: 0 });
+        }
+      });
+      renderPlayers();
+    }
+    document.body.removeChild(overlay);
+  });
+  actions.appendChild(confirm);
+  modal.appendChild(actions);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+}
+
 // Navigate from player page to configuration page
 if (toFormatBtn) {
   toFormatBtn.addEventListener('click', () => {
@@ -152,10 +233,12 @@ function renderPlayers() {
   playersListEl.innerHTML = '';
   players.forEach((player, index) => {
     const div = document.createElement('div');
-    // player name span
+    // player index and name span.  Display a running number so users can
+    // easily see how many players have been added.  The index is
+    // one‑based and followed by a period for clarity.
     const nameSpan = document.createElement('span');
     nameSpan.className = 'name';
-    nameSpan.textContent = `${player.name}`;
+    nameSpan.textContent = `${index + 1}. ${player.name}`;
     div.appendChild(nameSpan);
     // delete button
     const delBtn = document.createElement('button');
@@ -213,8 +296,8 @@ function updateTournamentOptions() {
     createButtons([1, 3, 5], document.getElementById('match-sets-options'), document.getElementById('match-sets'));
   } else if (type === 'fixed') {
     fixedOptionsEl.classList.remove('hidden');
-    // Fixed tournament players options (even numbers between 6 and 12)
-    createButtons([6, 8, 10, 12], document.getElementById('fixed-players-options'), document.getElementById('fixed-players'));
+    // Fixed tournament players options (even numbers between 6 and 16)
+    createButtons([6, 8, 10, 12, 14, 16], document.getElementById('fixed-players-options'), document.getElementById('fixed-players'));
   } else if (type === 'rotating') {
     rotatingOptionsEl.classList.remove('hidden');
     /*
@@ -225,9 +308,12 @@ function updateTournamentOptions() {
      */
     createButtons([4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], document.getElementById('rotating-players-options'), document.getElementById('rotating-players'));
   } else if (type === 'free') {
-    freeOptionsEl.classList.remove('hidden');
-    // Free tournament players options (from 2 to 12 players, in steps of 2)
-    createButtons([2, 4, 6, 8, 10, 12], document.getElementById('free-players-options'), document.getElementById('free-players'));
+    // In free tournaments we do not require a player count selection.  All
+    // registered players are eligible (up to a maximum handled in the
+    // tournament creation handler).  Hide the player count options
+    // entirely.
+    // Do not call createButtons for free tournaments.
+    freeOptionsEl.classList.add('hidden');
   } else if (type === 'playoff') {
     // Show playoff options: number of players (4-16).  We allow even numbers up to 16.
     const playoffOpt = document.getElementById('playoff-options');
@@ -242,8 +328,9 @@ function updateTournamentOptions() {
     if (defaultCount % 2 !== 0) defaultCount--;
     if (defaultCount > 16) defaultCount = 16;
     playoffInput.value = defaultCount;
-    // Build the option buttons and mark the default as active
-    createButtons([4, 6, 8, 10, 12, 14, 16], document.getElementById('playoff-players-options'), playoffInput);
+    // Build the option buttons and mark the default as active.  Allow even
+    // player counts from 4 up to 32 (corresponding to 2 to 16 teams).
+    createButtons([4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32], document.getElementById('playoff-players-options'), playoffInput);
   }
   // Courts options: display for all types
   createButtons([1, 2, 3, 4], document.getElementById('courts-options'), document.getElementById('courts'));
@@ -3010,8 +3097,9 @@ tournamentForm.addEventListener('submit', (e) => {
     infoHtml = `<p>Official match: ${teams[0].name} vs ${teams[1].name}</p>`;
   } else if (type === 'fixed') {
     const numPlayers = parseInt(document.getElementById('fixed-players').value, 10);
-    if (numPlayers % 2 !== 0 || numPlayers < 6 || numPlayers > 12) {
-      alert('Fixed partner tournaments require an even number of players between 6 and 12.');
+    // Allow even player counts between 6 and 16 for fixed partner tournaments.
+    if (numPlayers % 2 !== 0 || numPlayers < 6 || numPlayers > 16) {
+      alert('Fixed partner tournaments require an even number of players between 6 and 16.');
       return;
     }
     if (players.length < numPlayers) {
@@ -3027,8 +3115,8 @@ tournamentForm.addEventListener('submit', (e) => {
     return;
   } else if (type === 'rotating') {
     const numPlayers = parseInt(document.getElementById('rotating-players').value, 10);
-    if (numPlayers < 4 || numPlayers > 12) {
-      alert('Rotating partner tournaments require between 4 and 12 players.');
+    if (numPlayers < 4 || numPlayers > 16) {
+      alert('Rotating partner tournaments require between 4 and 16 players.');
       return;
     }
     if (players.length < numPlayers) {
@@ -3039,16 +3127,17 @@ tournamentForm.addEventListener('submit', (e) => {
     schedule = generateScheduleRotating(selected, courts);
     infoHtml = `<p>Rotating partner tournament with ${selected.length} players and ${courts} court(s).</p>`;
   } else if (type === 'free') {
-    const numPlayers = parseInt(document.getElementById('free-players').value, 10);
+    // Free tournaments include all registered players up to a maximum of 30.
+    let numPlayers = players.length;
     if (numPlayers < 2) {
       alert('Free tournaments require at least 2 players.');
       return;
     }
-    if (players.length < numPlayers) {
-      alert(`You need at least ${numPlayers} players.`);
+    if (numPlayers > 30) {
+      alert('Free tournaments allow a maximum of 30 players. Please remove some players.');
       return;
     }
-    // For free tournaments we don't generate schedule automatically. We'll provide manual mode.
+    // Use all available players (shuffle to randomise order for initial pairing suggestions)
     const selected = shuffle(players.slice()).slice(0, numPlayers);
     schedule = [];
     infoHtml = `<p>Free tournament with ${selected.length} players. Add matches manually.</p>`;
@@ -3056,8 +3145,9 @@ tournamentForm.addEventListener('submit', (e) => {
     // Playoff bracket tournament: players form fixed teams and play in single elimination bracket.
     const numPlayers = parseInt(document.getElementById('playoff-players').value, 10);
     // Validate number of players (must be between 4 and 16 and even)
-    if (numPlayers < 4 || numPlayers > 16 || numPlayers % 2 !== 0) {
-      alert('Playoff tournaments require an even number of players between 4 and 16.');
+    // Validate number of players (must be between 4 and 32 and even)
+    if (numPlayers < 4 || numPlayers > 32 || numPlayers % 2 !== 0) {
+      alert('Playoff tournaments require an even number of players between 4 and 32.');
       return;
     }
     if (players.length < numPlayers) {

@@ -1151,15 +1151,15 @@ table.dark-table.ranking-table td:not(:last-child) {
   }
 
   /* On mobile, collapse match tables based on scoring type.  For sets‑based
-     tournaments, hide the set and game columns (3 through 6) entirely,
-     leaving only court, players and actions.  For Americano scoring,
-     hide the "Game" column (fourth) so that only court, players,
-     points and actions remain visible. */
-  .sets-table th:nth-child(3),
+     tournaments, hide the second and third set columns (4th and 5th) and
+     the game column (6th) so that at least the first set remains visible
+     alongside the court, players and actions.  Keeping the first set
+     column ensures that users can still see the entered result for
+     single‑set matches.  For Americano scoring, hide the "Game" column
+     (fourth) so that only court, players, points and actions remain visible. */
   .sets-table th:nth-child(4),
   .sets-table th:nth-child(5),
   .sets-table th:nth-child(6),
-  .sets-table td:nth-child(3),
   .sets-table td:nth-child(4),
   .sets-table td:nth-child(5),
   .sets-table td:nth-child(6) {
@@ -1168,6 +1168,14 @@ table.dark-table.ranking-table td:not(:last-child) {
   .americano-table th:nth-child(4),
   .americano-table td:nth-child(4) {
     display: none;
+  }
+
+  /* Ensure cards do not exceed the viewport width.  Without this,
+     negative margins from auto centering could cause the left edge of
+     the card to be hidden.  Setting max‑width to 100% prevents
+     unintended overflow on small screens. */
+  .card {
+    max-width: 100%;
   }
 
   /* Adjust header font sizes */
