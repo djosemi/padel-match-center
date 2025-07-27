@@ -1106,16 +1106,28 @@ table.dark-table.ranking-table td:not(:last-child) {
   /* Allow both the schedule and ranking sections to scroll horizontally.
      Without overflow enabled on these containers the tables can extend
      beyond the viewport and cut off content on the left or right. */
+  /* Prevent horizontal scrolling of the overall page on small screens.  By
+     default, wide tables can cause the body to scroll sideways, hiding
+     elements on the left such as the Back button. */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Do not create horizontal scrollbars for schedule and ranking sections on
+     mobile.  Any overflow content is hidden and tables will shrink to
+     fit the available width. */
   #schedule,
   #ranking {
-    overflow-x: auto;
+    overflow-x: visible;
   }
-  /* Ensure that wide tables do not wrap: minimum width prevents
-     auto‑shrinking that can squeeze text unreadably.  A smaller font size
-     and tighter padding also help fit more columns on small screens. */
+
+  /* Allow tables to shrink to the viewport width on small screens.  Remove
+     the minimum width that previously forced a 600px scroll area.  Set
+     width:100% to ensure the table fits the screen width. */
   table.match-table,
   table.ranking-table {
-    min-width: 600px;
+    width: 100%;
+    min-width: unset;
     font-size: 0.75rem;
   }
   table.match-table th,
@@ -1157,7 +1169,20 @@ table.dark-table.ranking-table td:not(:last-child) {
     font-size: 0.9rem;
   }
 
+  /* Adjust the layout of page headers on small screens.  When the back button
+     and heading are displayed on a single line they can cause the card to
+     overflow horizontally, hiding the left edge of the page.  Stack them
+     vertically and reduce the heading size so everything fits within the
+     viewport. */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
   .page-header h2 {
-    font-size: 1.4rem;
+    font-size: 1.3rem;
+    margin-top: 0.5rem;
+  }
+  .page-header button {
+    margin-bottom: 0.25rem;
   }
 }
