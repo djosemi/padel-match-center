@@ -217,8 +217,13 @@ function updateTournamentOptions() {
     createButtons([6, 8, 10, 12], document.getElementById('fixed-players-options'), document.getElementById('fixed-players'));
   } else if (type === 'rotating') {
     rotatingOptionsEl.classList.remove('hidden');
-    // Rotating tournament players options (even numbers between 4 and 12)
-    createButtons([4, 6, 8, 10, 12], document.getElementById('rotating-players-options'), document.getElementById('rotating-players'));
+    /*
+     * Rotating tournament player options.
+     * The user requested support for odd sizes (5, 7, 9, 11, 13, 14, 15, 16) in addition to the
+     * traditional even sizes.  By supplying a full range from 4 up to 16 we allow organisers
+     * to pick any number of players and our scheduling algorithm will handle byes fairly.  
+     */
+    createButtons([4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], document.getElementById('rotating-players-options'), document.getElementById('rotating-players'));
   } else if (type === 'free') {
     freeOptionsEl.classList.remove('hidden');
     // Free tournament players options (from 2 to 12 players, in steps of 2)
@@ -521,68 +526,107 @@ function generateScheduleRotating(playerList, courts) {
     }
     return schedule;
   }
-  // Fallback greedy algorithm for odd sizes or numbers not divisible by 4
-  const pairs = [];
+  // Fallback algorithm for odd sizes or numbers not divisible by 4.
+  // To ensure fairness when the number of players is not a multiple of four, we
+  // generate all possible pairs and then schedule matches by prioritising
+  // players who have rested the most and played the fewest matches.  This
+  // reduces long sequences of rest rounds for any single player and ensures
+  // everyone plays a comparable number of matches.
+  // Build list of all pairs and a stats map for each player
+  const allPairs = [];
   for (let i = 0; i < P; i++) {
     for (let j = i + 1; j < P; j++) {
-      pairs.push([playerList[i], playerList[j]]);
+      const pA = playerList[i];
+      const pB = playerList[j];
+      allPairs.push({ p1: pA, p2: pB, scheduled: false });
     }
   }
-  shuffle(pairs);
+  const statsMap = new Map();
+  playerList.forEach((p) => {
+    statsMap.set(p.id, { matchesPlayed: 0, consecutiveRest: 0 });
+  });
   const schedule = [];
-  while (pairs.length > 1) {
-    const usedPlayers = new Set();
-    const roundMatches = [];
-    // Determine the maximum matches that can be played simultaneously
-    const matchesPerRound = Math.min(Math.floor(P / 4), courts);
-    for (let i = 0; i < pairs.length && roundMatches.length < matchesPerRound; ) {
-      const pairA = pairs[i];
-      const [p1, p2] = pairA;
-      if (usedPlayers.has(p1.id) || usedPlayers.has(p2.id)) {
-        i++;
-        continue;
-      }
-      let pairIndexB = -1;
-      for (let j = i + 1; j < pairs.length; j++) {
-        const pairB = pairs[j];
-        const [p3, p4] = pairB;
+  // Continue scheduling until all pairs are placed into matches or no further progress can be made
+  while (allPairs.some((pair) => !pair.scheduled)) {
+    const used = new Set();
+    const round = [];
+    // Determine maximum matches per round: at least 1 match if enough players exist
+    const matchesPerRound = Math.max(1, Math.min(Math.floor(P / 4), courts));
+    let matchesThisRound = 0;
+    while (matchesThisRound < matchesPerRound) {
+      // Candidate pairs: unscheduled and players not used in this round
+      const candidates = allPairs.filter(
+        (pair) =>
+          !pair.scheduled &&
+          !used.has(pair.p1.id) &&
+          !used.has(pair.p2.id)
+      );
+      if (candidates.length < 2) break;
+      // Sort candidates by priority: prefer pairs whose players have rested more and played less
+      candidates.sort((A, B) => {
+        const statA1 = statsMap.get(A.p1.id);
+        const statA2 = statsMap.get(A.p2.id);
+        const statB1 = statsMap.get(B.p1.id);
+        const statB2 = statsMap.get(B.p2.id);
+        const priA =
+          statA1.consecutiveRest +
+          statA2.consecutiveRest -
+          0.1 * (statA1.matchesPlayed + statA2.matchesPlayed);
+        const priB =
+          statB1.consecutiveRest +
+          statB2.consecutiveRest -
+          0.1 * (statB1.matchesPlayed + statB2.matchesPlayed);
+      return priB - priA;
+      });
+      const pairA = candidates[0];
+      // Find second pair for this match that does not share players with pairA
+      let pairB = null;
+      for (let k = 1; k < candidates.length; k++) {
+        const cand = candidates[k];
         if (
-          p3.id !== p1.id && p3.id !== p2.id &&
-          p4.id !== p1.id && p4.id !== p2.id &&
-          !usedPlayers.has(p3.id) && !usedPlayers.has(p4.id)
+          cand.p1.id !== pairA.p1.id &&
+          cand.p1.id !== pairA.p2.id &&
+          cand.p2.id !== pairA.p1.id &&
+          cand.p2.id !== pairA.p2.id
         ) {
-          pairIndexB = j;
+          pairB = cand;
           break;
         }
       }
-      if (pairIndexB !== -1) {
-        const pairB = pairs[pairIndexB];
-        if (pairIndexB > i) {
-          pairs.splice(pairIndexB, 1);
-          pairs.splice(i, 1);
-        } else {
-          pairs.splice(i, 1);
-          pairs.splice(pairIndexB, 1);
-        }
-        usedPlayers.add(p1.id);
-        usedPlayers.add(p2.id);
-        usedPlayers.add(pairB[0].id);
-        usedPlayers.add(pairB[1].id);
-        roundMatches.push({
-          teamA: pairA,
-          teamB: pairB,
-          round: schedule.length + 1,
-          court: (roundMatches.length % courts) + 1,
-          score: null,
-        });
-        i = 0;
-      } else {
-        i++;
+      if (!pairB) {
+        // No compatible second pair found; break out to avoid infinite loop
+        break;
       }
+      // Schedule this match
+      pairA.scheduled = true;
+      pairB.scheduled = true;
+      used.add(pairA.p1.id);
+      used.add(pairA.p2.id);
+      used.add(pairB.p1.id);
+      used.add(pairB.p2.id);
+      round.push({
+        teamA: [pairA.p1, pairA.p2],
+        teamB: [pairB.p1, pairB.p2],
+        round: schedule.length + 1,
+        court: (round.length % courts) + 1,
+        score: null,
+      });
+      matchesThisRound++;
     }
-    if (roundMatches.length > 0) {
-      schedule.push(roundMatches);
+    if (round.length > 0) {
+      // Update player statistics: players used have played a match; others rested
+      playerList.forEach((p) => {
+        const st = statsMap.get(p.id);
+        if (used.has(p.id)) {
+          st.matchesPlayed++;
+          st.consecutiveRest = 0;
+        } else {
+          st.consecutiveRest++;
+        }
+      });
+      schedule.push(round);
     } else {
+      // Unable to schedule more matches; break to avoid infinite loop
       break;
     }
   }
@@ -1606,28 +1650,31 @@ function computeRankingRotating(schedule) {
       // Determine if scoring is Americano: score is simple array of two numbers
       const isAmericano = !Array.isArray(score[0]);
       if (isAmericano && tournament && tournament.useAmericano) {
-        // Americano scoring: one set of points
-        const ptsA = score[0];
-        const ptsB = score[1];
-        // Determine winner
+        // Americano scoring: two numbers represent points for teams A and B.
+        const ptsA = score[0] || 0;
+        const ptsB = score[1] || 0;
+        // Determine winner or tie
         let winnerTeam = null;
         if (ptsA > ptsB) winnerTeam = 'A';
         else if (ptsB > ptsA) winnerTeam = 'B';
+        // Bonus points: +2 for a win, +1 for a tie.  These bonus points
+        // do not appear in the score entry but are added to the total
+        // points tally for ranking purposes.
+        const bonusA = winnerTeam === 'A' ? 2 : winnerTeam === null ? 1 : 0;
+        const bonusB = winnerTeam === 'B' ? 2 : winnerTeam === null ? 1 : 0;
         // Update stats for players in team A
         teamA.forEach((player) => {
           const entry = stats.get(player.id);
           entry.matches++;
-          entry.totalPoints += ptsA;
+          entry.totalPoints += ptsA + bonusA;
           if (winnerTeam === 'A') entry.wins++;
-          else if (winnerTeam === 'B') entry.losses++;
         });
         // Update stats for players in team B
         teamB.forEach((player) => {
           const entry = stats.get(player.id);
           entry.matches++;
-          entry.totalPoints += ptsB;
+          entry.totalPoints += ptsB + bonusB;
           if (winnerTeam === 'B') entry.wins++;
-          else if (winnerTeam === 'A') entry.losses++;
         });
       } else {
         // Sets scoring: use previous logic counting sets won as points and games
@@ -2482,8 +2529,8 @@ function displayRanking(ranking, isRotating) {
    */
   if (isRotating) {
     if (tournament && tournament.useAmericano) {
-      // Americano rotating: rank, player, matches, wins, losses, average points
-      ['Rank', 'Player', 'Matches', 'Wins', 'Losses', 'Avg Points'].forEach((txt) => {
+      // Americano rotating: rank, player, matches, wins, total points and average points.
+      ['Rank', 'Player', 'Matches', 'Wins', 'Total Points', 'Avg Points'].forEach((txt) => {
         const th = document.createElement('th');
         th.textContent = txt;
         trh.appendChild(th);
@@ -2522,23 +2569,22 @@ function displayRanking(ranking, isRotating) {
     tr.appendChild(nameTd);
     if (isRotating) {
       if (tournament && tournament.useAmericano) {
-        // Americano: show matches, wins, losses, average points
+        // Americano: show matches, wins, total points and average points (with bonus included)
         const matchesTd = document.createElement('td');
         matchesTd.className = 'stat-col';
         matchesTd.textContent = entry.matches;
         const winsTd = document.createElement('td');
         winsTd.className = 'stat-col';
         winsTd.textContent = entry.wins;
-        const lossesTd = document.createElement('td');
-        lossesTd.className = 'stat-col';
-        lossesTd.textContent = entry.losses;
+        const totalPtsTd = document.createElement('td');
+        totalPtsTd.className = 'stat-col';
+        totalPtsTd.textContent = entry.totalPoints;
         const avgTd = document.createElement('td');
         avgTd.className = 'stat-col';
-        // Show average with one decimal place
         avgTd.textContent = entry.avgPoints ? entry.avgPoints.toFixed(1) : '0.0';
         tr.appendChild(matchesTd);
         tr.appendChild(winsTd);
-        tr.appendChild(lossesTd);
+        tr.appendChild(totalPtsTd);
         tr.appendChild(avgTd);
       } else {
         // Sets or free: show points and games won/lost difference

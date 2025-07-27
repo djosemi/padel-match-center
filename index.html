@@ -83,11 +83,12 @@
           </div>
           <div id="rotating-options" class="tournament-options hidden">
             <label>
-              Number of players (4-12):
+              Number of players (4-16):
               <!-- Buttons container for rotating tournament player counts -->
               <div id="rotating-players-options" class="options-buttons"></div>
               <!-- Hidden input to store selected number of players -->
-              <input type="number" id="rotating-players" min="4" max="12" value="4" class="hidden">
+              <!-- Allow up to 16 players for rotating tournaments, including odd numbers.  -->
+              <input type="number" id="rotating-players" min="4" max="16" value="4" class="hidden">
             </label>
           </div>
       <div id="playoff-options" class="tournament-options hidden">

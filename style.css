@@ -1141,8 +1141,12 @@ table.dark-table.ranking-table td:not(:last-child) {
      horizontal overflow.  We keep only the first five columns: Name,
      Matches, Wins, Losses and Win %, and hide the remaining statistics
      (sets won/lost, games won/lost, game difference). */
-  #ranking table tr th:nth-child(n+6),
-  #ranking table tr td:nth-child(n+6) {
+  /* Hide ranking columns beyond the sixth on mobile.  Since the rotating
+     Americano ranking now shows six columns (Rank, Player, Matches, Wins,
+     Total Points, Avg Points), hiding from the seventh column preserves
+     all critical information. */
+  #ranking table tr th:nth-child(n+7),
+  #ranking table tr td:nth-child(n+7) {
     display: none;
   }
 
