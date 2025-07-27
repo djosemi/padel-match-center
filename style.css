@@ -1219,7 +1219,12 @@ table.dark-table.ranking-table td:not(:last-child) {
   table.match-table td,
   table.ranking-table th,
   table.ranking-table td {
-    padding: 0.3rem 0.4rem;
+    /* Tighter padding on small screens to fit more columns */
+    padding: 0.25rem 0.35rem;
+  }
+  /* Reduce font size for ranking table headers on small screens */
+  table.ranking-table th {
+    font-size: 0.65rem;
   }
 
   /* On small screens reduce the minimum widths and font sizes for ranking columns.
@@ -1260,8 +1265,13 @@ table.dark-table.ranking-table td:not(:last-child) {
      Americano ranking now shows six columns (Rank, Player, Matches, Wins,
      Total Points, Avg Points), hiding from the seventh column preserves
      all critical information. */
-  #ranking table tr th:nth-child(n+7),
-  #ranking table tr td:nth-child(n+7) {
+  /* Hide ranking columns beyond the seventh on mobile.  The set-based fixed
+     ranking now displays exactly seven columns (Rank, Team, Matches, Wins,
+     Losses, Win %, Game ±).  Rotating Americano ranking displays six
+     columns, so hiding from the eighth column onward has no effect on
+     those tables. */
+  #ranking table tr th:nth-child(n+8),
+  #ranking table tr td:nth-child(n+8) {
     display: none;
   }
 

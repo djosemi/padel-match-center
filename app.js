@@ -2730,8 +2730,13 @@ function displayRanking(ranking, isRotating) {
         trh.appendChild(th);
       });
     } else {
-      // Set‑based fixed/official tournaments: rank, team, matches, wins, losses, win%, sets won/lost, games won/lost, game difference
-      ['Rank', 'Team', 'Matches', 'Wins', 'Losses', 'Win %', 'Sets Won', 'Sets Lost', 'Games Won', 'Games Lost', 'Game ±'].forEach((txt) => {
+      // Set‑based fixed/official tournaments: show a compact set of columns to
+      // avoid horizontal overflow on small screens.  We include matches,
+      // wins, losses, win percentage and a single column for game
+      // difference (games won minus games lost).  Sets won/lost and raw
+      // games won/lost are still tracked internally but omitted from the
+      // table to save space.
+      ['Rank', 'Team', 'Matches', 'Wins', 'Losses', 'Win %', 'Game ±'].forEach((txt) => {
         const th = document.createElement('th');
         th.textContent = txt;
         trh.appendChild(th);
@@ -2818,7 +2823,7 @@ function displayRanking(ranking, isRotating) {
         tr.appendChild(totalPtsTd);
         tr.appendChild(avgTd);
       } else {
-        // Set-based fixed/official tournaments: include win percentage, sets, games and difference
+        // Set-based fixed/official tournaments: matches, wins, losses, win % and game difference
         const matchesTd = document.createElement('td');
         matchesTd.className = 'stat-col';
         matchesTd.textContent = entry.matches;
@@ -2833,18 +2838,6 @@ function displayRanking(ranking, isRotating) {
         const pctTd = document.createElement('td');
         pctTd.className = 'stat-col';
         pctTd.textContent = `${pct}%`;
-        const setsWonTd = document.createElement('td');
-        setsWonTd.className = 'stat-col';
-        setsWonTd.textContent = entry.setsWon;
-        const setsLostTd = document.createElement('td');
-        setsLostTd.className = 'stat-col';
-        setsLostTd.textContent = entry.setsLost;
-        const gamesWonTd = document.createElement('td');
-        gamesWonTd.className = 'stat-col';
-        gamesWonTd.textContent = entry.gamesWon;
-        const gamesLostTd = document.createElement('td');
-        gamesLostTd.className = 'stat-col';
-        gamesLostTd.textContent = entry.gamesLost;
         const diffTd = document.createElement('td');
         diffTd.className = 'stat-col';
         diffTd.textContent = entry.gamesWon - entry.gamesLost;
@@ -2852,10 +2845,6 @@ function displayRanking(ranking, isRotating) {
         tr.appendChild(winsTd);
         tr.appendChild(lossesTd);
         tr.appendChild(pctTd);
-        tr.appendChild(setsWonTd);
-        tr.appendChild(setsLostTd);
-        tr.appendChild(gamesWonTd);
-        tr.appendChild(gamesLostTd);
         tr.appendChild(diffTd);
       }
     }
