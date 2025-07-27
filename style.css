@@ -1134,13 +1134,18 @@ table.dark-table.ranking-table td:not(:last-child) {
     display: none;
   }
 
-  /* For match tables, hide the third set column on small screens.  Most
-     matches finish in two sets, so this column is often empty and can be
-     omitted to save horizontal space.  Note: nth-child indexes start at 1,
-     so the fifth column corresponds to set 3 (Court=1, Players=2, Set1=3,
-     Set2=4, Set3=5, Game=6, Actions=7). */
+  /* On mobile, collapse the match table to show only court, players and actions.
+     Hide the set and game columns entirely; detailed results can still be
+     entered via the "Enter" button.  Columns are indexed starting at 1:
+     Court=1, Players=2, Set1=3, Set2=4, Set3=5, Game=6, Actions=7. */
+  #schedule table.match-table th:nth-child(3),
+  #schedule table.match-table th:nth-child(4),
   #schedule table.match-table th:nth-child(5),
-  #schedule table.match-table td:nth-child(5) {
+  #schedule table.match-table th:nth-child(6),
+  #schedule table.match-table td:nth-child(3),
+  #schedule table.match-table td:nth-child(4),
+  #schedule table.match-table td:nth-child(5),
+  #schedule table.match-table td:nth-child(6) {
     display: none;
   }
 
