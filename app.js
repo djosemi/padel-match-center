@@ -1788,7 +1788,9 @@ function computeRankingRotating(schedule) {
           if (winnerTeam === 'B') entry.wins++;
         });
       } else {
-        // Sets scoring: use previous logic counting sets won as points and games
+        // Sets scoring: award one point for the match winner rather than a point
+        // per set won.  This ensures that longer matches (e.g. best of three
+        // sets) do not artificially reward teams for playing more sets.
         let gamesA = 0;
         let gamesB = 0;
         let setsWonA = 0;
@@ -1799,19 +1801,20 @@ function computeRankingRotating(schedule) {
           if (a > b) setsWonA++;
           else if (b > a) setsWonB++;
         });
-        const totalPointsA = setsWonA;
-        const totalPointsB = setsWonB;
+        // Determine match points: 1 point for the match winner (more sets won), 0 otherwise.
+        const matchPointA = setsWonA > setsWonB ? 1 : 0;
+        const matchPointB = setsWonB > setsWonA ? 1 : 0;
         // Aggregate stats for team A players
         teamA.forEach((player) => {
           const entry = stats.get(player.id);
-          entry.points += totalPointsA;
+          entry.points += matchPointA;
           entry.gamesWon += gamesA;
           entry.gamesLost += gamesB;
         });
         // Aggregate stats for team B players
         teamB.forEach((player) => {
           const entry = stats.get(player.id);
-          entry.points += totalPointsB;
+          entry.points += matchPointB;
           entry.gamesWon += gamesB;
           entry.gamesLost += gamesA;
         });
@@ -2336,7 +2339,21 @@ function promptResult(match, roundIndex = null, matchIndex = null) {
     boxA.className = 'americano-box';
     const labelA = document.createElement('span');
     labelA.className = 'team-label';
-    labelA.textContent = match.teamA ? match.teamA.name.toUpperCase() : 'TEAM A';
+    // Safely build the display name for team A.  Teams in free and rotating
+    // tournaments are arrays of players rather than objects with a name
+    // property.  Join player names with an ampersand when necessary.
+    if (match.teamA) {
+      if (Array.isArray(match.teamA)) {
+        labelA.textContent = match.teamA
+          .filter((p) => p && p.name)
+          .map((p) => p.name.toUpperCase())
+          .join(' & ');
+      } else {
+        labelA.textContent = match.teamA.name.toUpperCase();
+      }
+    } else {
+      labelA.textContent = 'TEAM A';
+    }
     const inputA = document.createElement('input');
     inputA.type = 'number';
     inputA.min = '0';
@@ -2350,7 +2367,18 @@ function promptResult(match, roundIndex = null, matchIndex = null) {
     boxB.className = 'americano-box';
     const labelB = document.createElement('span');
     labelB.className = 'team-label';
-    labelB.textContent = match.teamB ? match.teamB.name.toUpperCase() : 'TEAM B';
+    if (match.teamB) {
+      if (Array.isArray(match.teamB)) {
+        labelB.textContent = match.teamB
+          .filter((p) => p && p.name)
+          .map((p) => p.name.toUpperCase())
+          .join(' & ');
+      } else {
+        labelB.textContent = match.teamB.name.toUpperCase();
+      }
+    } else {
+      labelB.textContent = 'TEAM B';
+    }
     const inputB = document.createElement('input');
     inputB.type = 'number';
     inputB.min = '0';
@@ -2725,6 +2753,11 @@ function displayRanking(ranking, isRotating) {
     const nameTd = document.createElement('td');
     nameTd.className = isRotating ? 'name-col' : 'name-col';
     nameTd.textContent = entry.name.toUpperCase();
+    // If the team name contains an ampersand (indicating two players),
+    // tag the cell so that mobile CSS can reduce its font size and padding.
+    if (entry.name && entry.name.includes(' & ')) {
+      nameTd.classList.add('two-names');
+    }
     tr.appendChild(nameTd);
     if (isRotating) {
       if (tournament && tournament.useAmericano) {

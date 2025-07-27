@@ -480,6 +480,41 @@ table.dark-table.ranking-table td:not(:last-child) {
 }
 
 /*
+ * Optional set and game cells in the match schedule
+ *
+ * Additional set columns (beyond the first) and the game column are marked
+ * with the classes `.optional-set` and `.optional-game`.  These classes
+ * reduce the width and font size of the cells, ensuring that all set
+ * results remain visible without forcing horizontal scrolling or
+ * hiding entire columns.  The values chosen here strike a balance
+ * between readability and compactness on larger screens.  A second
+ * adjustment is applied in the mobile media query to further shrink
+ * these columns on small devices.
+ */
+.optional-set,
+.optional-game {
+  width: 3.2rem;
+  min-width: 3.2rem;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.85rem;
+}
+
+/*
+ * Reduce the font size and horizontal padding for ranking names containing
+ * two players.  Names with an ampersand (e.g. "Josemi & Lala") can
+ * otherwise cause the name column to stretch beyond the viewport,
+ * especially on small screens.  This rule helps maintain layout
+ * integrity by compressing the text slightly.  Further adjustments for
+ * mobile are applied in the media query below.
+ */
+.name-col.two-names {
+  font-size: 0.85rem;
+  padding-left: 0.4rem;
+  padding-right: 0.4rem;
+  white-space: normal;
+}
+
+/*
  * Detailed set display within bracket matches.
  *
  * Each match may have one or more sets (or points in Americano).  The
@@ -1200,8 +1235,19 @@ table.dark-table.ranking-table td:not(:last-child) {
     font-size: 0.75rem;
     white-space: nowrap;
   }
+
+  /* Compress two-player team names further on small screens */
+  .name-col.two-names {
+    font-size: 0.65rem;
+    padding-left: 0.3rem;
+    padding-right: 0.3rem;
+    white-space: normal;
+  }
   .stat-col {
-    min-width: 2.5rem;
+    /* Narrow the width of numeric columns on small screens to prevent
+       overflow.  Reduced padding ensures the numbers remain readable
+       without causing horizontal scroll. */
+    min-width: 2.2rem;
     font-size: 0.7rem;
     text-align: center;
   }
@@ -1219,14 +1265,17 @@ table.dark-table.ranking-table td:not(:last-child) {
     display: none;
   }
 
-  /* On mobile, hide optional set and game columns regardless of their
-     numeric position.  We mark these cells with the classes
-     `.optional-set` and `.optional-game` at render time instead of
-     relying on nth‑child selectors, which break when fewer columns are
-     present (e.g. single‑set matches). */
+  /* On mobile, keep optional set and game columns visible but reduce their
+     width and font size.  Previously we hid these columns completely,
+     which caused the actions column to shift and disappear when only one
+     set was played.  By shrinking them instead of hiding, the columns
+     remain visible without occupying excessive space. */
   .optional-set,
   .optional-game {
-    display: none !important;
+    width: 2rem;
+    min-width: 2rem;
+    padding: 0.2rem 0.3rem;
+    font-size: 0.7rem;
   }
 
   /* Ensure cards do not exceed the viewport width.  Without this,
