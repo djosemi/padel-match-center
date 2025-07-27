@@ -1103,9 +1103,16 @@ table.dark-table.ranking-table td:not(:last-child) {
      Without this, the number of columns (sets, games, statistics) can exceed
      the viewport width and cause content to be clipped.  Setting overflow
      allows the user to swipe horizontally to view all data. */
-  #schedule {
+  /* Allow both the schedule and ranking sections to scroll horizontally.
+     Without overflow enabled on these containers the tables can extend
+     beyond the viewport and cut off content on the left or right. */
+  #schedule,
+  #ranking {
     overflow-x: auto;
   }
+  /* Ensure that wide tables do not wrap: minimum width prevents
+     auto‑shrinking that can squeeze text unreadably.  A smaller font size
+     and tighter padding also help fit more columns on small screens. */
   table.match-table,
   table.ranking-table {
     min-width: 600px;
@@ -1116,6 +1123,25 @@ table.dark-table.ranking-table td:not(:last-child) {
   table.ranking-table th,
   table.ranking-table td {
     padding: 0.4rem 0.5rem;
+  }
+
+  /* On mobile, hide less important columns in the ranking table to reduce
+     horizontal overflow.  We keep only the first five columns: Name,
+     Matches, Wins, Losses and Win %, and hide the remaining statistics
+     (sets won/lost, games won/lost, game difference). */
+  #ranking table tr th:nth-child(n+6),
+  #ranking table tr td:nth-child(n+6) {
+    display: none;
+  }
+
+  /* For match tables, hide the third set column on small screens.  Most
+     matches finish in two sets, so this column is often empty and can be
+     omitted to save horizontal space.  Note: nth-child indexes start at 1,
+     so the fifth column corresponds to set 3 (Court=1, Players=2, Set1=3,
+     Set2=4, Set3=5, Game=6, Actions=7). */
+  #schedule table.match-table th:nth-child(5),
+  #schedule table.match-table td:nth-child(5) {
+    display: none;
   }
 
   /* Adjust header font sizes */
