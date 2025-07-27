@@ -743,6 +743,56 @@ table.dark-table.ranking-table td:not(:last-child) {
   cursor: pointer;
 }
 
+/* Names row within the set input modal for sets scoring.  Display
+   the team names above the score boxes so users always know which
+   side they are entering games for. */
+.names-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
+}
+.team-name {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #1976b2;
+  text-transform: uppercase;
+}
+
+/* Layout for Americano point entry.  Display two equal boxes side by side
+   containing the team name and the input/display of points. */
+.americano-inputs {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.americano-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  background: #f1f5f8;
+  border-radius: 8px;
+  width: 100px;
+  cursor: pointer;
+}
+.americano-box .team-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  color: #1976b2;
+}
+.americano-box input.score-input,
+.americano-box span.americano-display {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #1976b2;
+  width: 100%;
+  text-align: center;
+}
+
 .keypad,
 .keypad-row {
   display: flex;
@@ -1150,24 +1200,14 @@ table.dark-table.ranking-table td:not(:last-child) {
     display: none;
   }
 
-  /* On mobile, collapse match tables based on scoring type.  For sets‑based
-     tournaments, hide the second and third set columns (4th and 5th) and
-     the game column (6th) so that at least the first set remains visible
-     alongside the court, players and actions.  Keeping the first set
-     column ensures that users can still see the entered result for
-     single‑set matches.  For Americano scoring, hide the "Game" column
-     (fourth) so that only court, players, points and actions remain visible. */
-  .sets-table th:nth-child(4),
-  .sets-table th:nth-child(5),
-  .sets-table th:nth-child(6),
-  .sets-table td:nth-child(4),
-  .sets-table td:nth-child(5),
-  .sets-table td:nth-child(6) {
-    display: none;
-  }
-  .americano-table th:nth-child(4),
-  .americano-table td:nth-child(4) {
-    display: none;
+  /* On mobile, hide optional set and game columns regardless of their
+     numeric position.  We mark these cells with the classes
+     `.optional-set` and `.optional-game` at render time instead of
+     relying on nth‑child selectors, which break when fewer columns are
+     present (e.g. single‑set matches). */
+  .optional-set,
+  .optional-game {
+    display: none !important;
   }
 
   /* Ensure cards do not exceed the viewport width.  Without this,
@@ -1176,6 +1216,14 @@ table.dark-table.ranking-table td:not(:last-child) {
      unintended overflow on small screens. */
   .card {
     max-width: 100%;
+  }
+
+  /* For Americano input modal on mobile, allow point boxes to expand
+     evenly to fill the available width.  Without this, one box may
+     appear longer than the other due to fixed pixel sizing. */
+  .americano-box {
+    flex: 1 1 0;
+    width: auto;
   }
 
   /* Adjust header font sizes */

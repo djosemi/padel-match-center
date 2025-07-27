@@ -1900,12 +1900,20 @@ function displaySchedule(schedule) {
       for (let s = 1; s <= setCount; s++) {
         const thSet = document.createElement('th');
         thSet.textContent = `Set ${s}`;
+        // For sets beyond the first, mark them as optional so they can be
+        // hidden on small screens via CSS.  This avoids relying on nth‑child
+        // selectors which break when only one set is played.
+        if (s > 1) thSet.classList.add('optional-set');
         headerRow.appendChild(thSet);
       }
     }
-    // Game column
+    // Game column.  Mark as optional so it can be hidden on mobile when
+    // space is limited.  For Americano tournaments, the points column
+    // contains the only score and this column will still be created
+    // consistently.
     const thGame = document.createElement('th');
     thGame.textContent = 'Game';
+    thGame.classList.add('optional-game');
     headerRow.appendChild(thGame);
     // Actions column
     const thActions = document.createElement('th');
@@ -2001,6 +2009,10 @@ function displaySchedule(schedule) {
             b = match.score[s][1];
           }
           tdSet.innerHTML = `${a}<br>${b}`;
+          // Mark all set cells beyond the first as optional for mobile.  The
+          // first set remains visible so single‑set matches still show a
+          // score column on narrow screens.
+          if (s > 0) tdSet.classList.add('optional-set');
           tr.appendChild(tdSet);
         }
       }
@@ -2011,6 +2023,8 @@ function displaySchedule(schedule) {
       } else {
         tdGame.innerHTML = `&nbsp;<br>&nbsp;`;
       }
+      // Mark game cell as optional so it can be hidden on mobile.
+      tdGame.classList.add('optional-game');
       tr.appendChild(tdGame);
       // Actions cell
       const tdActions = document.createElement('td');
@@ -2281,59 +2295,68 @@ function promptResult(match, roundIndex = null, matchIndex = null) {
   }
   if (usingAmericano) {
     /*
-     * Americano format: instead of selecting two numbers separately, allow the user to
-     * enter the points for Team A manually and automatically compute Team B's
-     * points based on the total points configured for the tournament. This
-     * reduces clicks and errors. The input is limited between 0 and the
-     * maximum points. As the user types, the second field updates in real time.
+     * Americano format: present two equal boxes side by side with team names.
+     * The user can enter points for either team; the opponent's points
+     * update automatically so that the sum equals the total points.  This
+     * provides a more balanced and intuitive input interface.
      */
     const title = document.createElement('h3');
-    title.textContent = 'Enter points for Team A';
+    title.textContent = 'Enter points';
     modal.appendChild(title);
-    const row = document.createElement('div');
-    row.className = 'set-row';
-    // Input for Team A points
+    const maxPts = tournament.americanoPoints || 24;
+    // Container for two point boxes
+    const container = document.createElement('div');
+    container.className = 'americano-inputs';
+    // Box for Team A
+    const boxA = document.createElement('div');
+    boxA.className = 'americano-box';
+    const labelA = document.createElement('span');
+    labelA.className = 'team-label';
+    labelA.textContent = match.teamA ? match.teamA.name.toUpperCase() : 'TEAM A';
     const inputA = document.createElement('input');
     inputA.type = 'number';
     inputA.min = '0';
-    // Use tournament.americanoPoints as max value
-    const maxPts = tournament.americanoPoints || 24;
     inputA.max = maxPts.toString();
     inputA.value = '0';
     inputA.className = 'score-input';
-    // Separator colon
-    const colon = document.createElement('span');
-    colon.className = 'score-colon';
-    colon.textContent = ':';
-    // Read‑only display for Team B points
-    const displayB = document.createElement('span');
-    // Apply a special class so the display looks like the input (squared box)
-    displayB.className = 'americano-display';
-    // Compute initial B points
-    displayB.textContent = maxPts.toString();
-    // Update Team B points whenever Team A changes
-    function updateB() {
-      let val = parseInt(inputA.value, 10);
+    boxA.appendChild(labelA);
+    boxA.appendChild(inputA);
+    // Box for Team B
+    const boxB = document.createElement('div');
+    boxB.className = 'americano-box';
+    const labelB = document.createElement('span');
+    labelB.className = 'team-label';
+    labelB.textContent = match.teamB ? match.teamB.name.toUpperCase() : 'TEAM B';
+    const inputB = document.createElement('input');
+    inputB.type = 'number';
+    inputB.min = '0';
+    inputB.max = maxPts.toString();
+    inputB.value = '0';
+    inputB.className = 'score-input';
+    boxB.appendChild(labelB);
+    boxB.appendChild(inputB);
+    container.appendChild(boxA);
+    container.appendChild(boxB);
+    modal.appendChild(container);
+    // Synchronise points so that the sum equals maxPts
+    function syncPoints(changed, other) {
+      let val = parseInt(changed.value, 10);
       if (isNaN(val) || val < 0) val = 0;
       if (val > maxPts) val = maxPts;
-      inputA.value = val.toString();
-      displayB.textContent = (maxPts - val).toString();
+      changed.value = val.toString();
+      other.value = (maxPts - val).toString();
     }
-    inputA.addEventListener('input', updateB);
-    row.appendChild(inputA);
-    row.appendChild(colon);
-    row.appendChild(displayB);
-    modal.appendChild(row);
+    inputA.addEventListener('input', () => syncPoints(inputA, inputB));
+    inputB.addEventListener('input', () => syncPoints(inputB, inputA));
     // Footer with OK and Cancel
     const footer = document.createElement('div');
     footer.className = 'modal-footer';
     const okBtn = document.createElement('button');
+    okBtn.className = 'btn primary';
     okBtn.textContent = 'OK';
-    okBtn.className = 'btn accent';
     okBtn.addEventListener('click', () => {
-      const a = parseInt(inputA.value, 10) || 0;
-      let valA = a;
-      if (valA < 0) valA = 0;
+      let valA = parseInt(inputA.value, 10);
+      if (isNaN(valA) || valA < 0) valA = 0;
       if (valA > maxPts) valA = maxPts;
       match.score = [valA, maxPts - valA];
       closeOverlay();
@@ -2404,6 +2427,22 @@ function promptResult(match, roundIndex = null, matchIndex = null) {
       const row = disp.parentElement;
       row.appendChild(keypad);
     }
+    // Create a row to show the team names for clarity
+    const namesRow = document.createElement('div');
+    namesRow.className = 'names-row';
+    const nameA = document.createElement('span');
+    nameA.className = 'team-name';
+    nameA.textContent = match.teamA ? (Array.isArray(match.teamA) ? match.teamA.map(p => p.name).join(' & ').toUpperCase() : match.teamA.name.toUpperCase()) : 'TEAM A';
+    const vs = document.createElement('span');
+    vs.className = 'score-colon';
+    vs.textContent = '';
+    const nameB = document.createElement('span');
+    nameB.className = 'team-name';
+    nameB.textContent = match.teamB ? (Array.isArray(match.teamB) ? match.teamB.map(p => p.name).join(' & ').toUpperCase() : match.teamB.name.toUpperCase()) : 'TEAM B';
+    namesRow.appendChild(nameA);
+    namesRow.appendChild(vs);
+    namesRow.appendChild(nameB);
+    setList.appendChild(namesRow);
     // Create set rows
     const scoreLines = [];
     function addSetInput() {
