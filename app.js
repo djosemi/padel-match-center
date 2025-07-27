@@ -1625,10 +1625,14 @@ function computeRankingFixed(schedule) {
             matches: 0,
             wins: 0,
             losses: 0,
+            // Track sets statistics for set‑based scoring
             setsWon: 0,
             setsLost: 0,
             gamesWon: 0,
             gamesLost: 0,
+            // For Americano scoring we track totalPoints (including bonus) to
+            // compute rankings.  This field is unused for set scoring.
+            totalPoints: 0,
           });
         }
       });
@@ -1639,6 +1643,7 @@ function computeRankingFixed(schedule) {
         statB.matches += 1;
         // If score entries are arrays, treat as set-based scoring. Otherwise treat as Americano (points only)
         if (Array.isArray(score[0])) {
+          // Set‑based scoring
           let setsWonA = 0;
           let setsWonB = 0;
           score.forEach(([a, b]) => {
@@ -1668,40 +1673,59 @@ function computeRankingFixed(schedule) {
             statA.losses += 1;
           }
         } else {
-          // Americano scoring: score is [pointsA, pointsB]
+          // Americano scoring: score is [pointsA, pointsB].  Use totalPoints
+          // to aggregate the raw points plus a bonus: +2 for a win, +1 for a tie.
           const ptsA = score[0] || 0;
           const ptsB = score[1] || 0;
-          // Record game points
+          // Determine winner or tie
+          let winnerTeam = null;
+          if (ptsA > ptsB) winnerTeam = 'A';
+          else if (ptsB > ptsA) winnerTeam = 'B';
+          // Bonus points per team
+          const bonusA = winnerTeam === 'A' ? 2 : winnerTeam === null ? 1 : 0;
+          const bonusB = winnerTeam === 'B' ? 2 : winnerTeam === null ? 1 : 0;
+          // Accumulate total points including bonus (matches count already updated above)
+          statA.totalPoints += ptsA + bonusA;
+          statB.totalPoints += ptsB + bonusB;
+          // Record wins for the winner only (no explicit losses for Americano ranking)
+          if (winnerTeam === 'A') {
+            statA.wins += 1;
+          } else if (winnerTeam === 'B') {
+            statB.wins += 1;
+          }
+          // Record games won/lost for completeness
           statA.gamesWon += ptsA;
           statA.gamesLost += ptsB;
           statB.gamesWon += ptsB;
           statB.gamesLost += ptsA;
-          // Use setsWon to record one set for winner (so win percentage works)
-          if (ptsA > ptsB) {
-            statA.wins += 1;
-            statB.losses += 1;
-            statA.setsWon += 1;
-            statB.setsLost += 1;
-          } else if (ptsB > ptsA) {
-            statB.wins += 1;
-            statA.losses += 1;
-            statB.setsWon += 1;
-            statA.setsLost += 1;
-          }
         }
       }
     });
   });
-  // Convert stats to array and sort by wins, then set difference, then game difference
-  const ranking = Array.from(stats.values()).sort((a, b) => {
-    if (b.wins !== a.wins) return b.wins - a.wins;
-    const setDiffA = a.setsWon - a.setsLost;
-    const setDiffB = b.setsWon - b.setsLost;
-    if (setDiffB !== setDiffA) return setDiffB - setDiffA;
-    const gameDiffA = a.gamesWon - a.gamesLost;
-    const gameDiffB = b.gamesWon - b.gamesLost;
-    return gameDiffB - gameDiffA;
+  // Convert stats to array and calculate average points for Americano scoring
+  const ranking = Array.from(stats.values()).map((entry) => {
+    entry.avgPoints = entry.matches > 0 ? entry.totalPoints / entry.matches : 0;
+    return entry;
   });
+  if (tournament && tournament.useAmericano) {
+    // Sort Americano ranking by wins, then average points, then name
+    ranking.sort((a, b) => {
+      if (b.wins !== a.wins) return b.wins - a.wins;
+      if (b.avgPoints !== a.avgPoints) return b.avgPoints - a.avgPoints;
+      return a.name.localeCompare(b.name);
+    });
+  } else {
+    // Sort set-based ranking by wins, then set difference, then game difference
+    ranking.sort((a, b) => {
+      if (b.wins !== a.wins) return b.wins - a.wins;
+      const setDiffA = a.setsWon - a.setsLost;
+      const setDiffB = b.setsWon - b.setsLost;
+      if (setDiffB !== setDiffA) return setDiffB - setDiffA;
+      const gameDiffA = a.gamesWon - a.gamesLost;
+      const gameDiffB = b.gamesWon - b.gamesLost;
+      return gameDiffB - gameDiffA;
+    });
+  }
   return ranking;
 }
 
@@ -2670,12 +2694,21 @@ function displayRanking(ranking, isRotating) {
       });
     }
   } else {
-    // Fixed/official tournaments: rank, team, matches, wins, losses, win%, sets won/lost, games won/lost, game difference
-    ['Rank', 'Team', 'Matches', 'Wins', 'Losses', 'Win %', 'Sets Won', 'Sets Lost', 'Games Won', 'Games Lost', 'Game ±'].forEach((txt) => {
-      const th = document.createElement('th');
-      th.textContent = txt;
-      trh.appendChild(th);
-    });
+    // Fixed/official tournaments.  If Americano scoring is enabled, show matches, wins, total points and average points.
+    if (tournament && tournament.useAmericano) {
+      ['Rank', 'Team', 'Matches', 'Wins', 'Total Points', 'Avg Points'].forEach((txt) => {
+        const th = document.createElement('th');
+        th.textContent = txt;
+        trh.appendChild(th);
+      });
+    } else {
+      // Set‑based fixed/official tournaments: rank, team, matches, wins, losses, win%, sets won/lost, games won/lost, game difference
+      ['Rank', 'Team', 'Matches', 'Wins', 'Losses', 'Win %', 'Sets Won', 'Sets Lost', 'Games Won', 'Games Lost', 'Game ±'].forEach((txt) => {
+        const th = document.createElement('th');
+        th.textContent = txt;
+        trh.appendChild(th);
+      });
+    }
   }
   thead.appendChild(trh);
   table.appendChild(thead);
@@ -2732,45 +2765,66 @@ function displayRanking(ranking, isRotating) {
         tr.appendChild(diffTd);
       }
     } else {
-      // Fixed/official tournaments: include win percentage, sets, games and difference
-      const matchesTd = document.createElement('td');
-      matchesTd.className = 'stat-col';
-      matchesTd.textContent = entry.matches;
-      const winsTd = document.createElement('td');
-      winsTd.className = 'stat-col';
-      winsTd.textContent = entry.wins;
-      const lossesTd = document.createElement('td');
-      lossesTd.className = 'stat-col';
-      lossesTd.textContent = entry.losses;
-      const totalPlayed = entry.wins + entry.losses;
-      const pct = totalPlayed > 0 ? Math.round((entry.wins / totalPlayed) * 100) : 0;
-      const pctTd = document.createElement('td');
-      pctTd.className = 'stat-col';
-      pctTd.textContent = `${pct}%`;
-      const setsWonTd = document.createElement('td');
-      setsWonTd.className = 'stat-col';
-      setsWonTd.textContent = entry.setsWon;
-      const setsLostTd = document.createElement('td');
-      setsLostTd.className = 'stat-col';
-      setsLostTd.textContent = entry.setsLost;
-      const gamesWonTd = document.createElement('td');
-      gamesWonTd.className = 'stat-col';
-      gamesWonTd.textContent = entry.gamesWon;
-      const gamesLostTd = document.createElement('td');
-      gamesLostTd.className = 'stat-col';
-      gamesLostTd.textContent = entry.gamesLost;
-      const diffTd = document.createElement('td');
-      diffTd.className = 'stat-col';
-      diffTd.textContent = entry.gamesWon - entry.gamesLost;
-      tr.appendChild(matchesTd);
-      tr.appendChild(winsTd);
-      tr.appendChild(lossesTd);
-      tr.appendChild(pctTd);
-      tr.appendChild(setsWonTd);
-      tr.appendChild(setsLostTd);
-      tr.appendChild(gamesWonTd);
-      tr.appendChild(gamesLostTd);
-      tr.appendChild(diffTd);
+      // Fixed/official tournaments: show ranking depending on scoring type
+      if (tournament && tournament.useAmericano) {
+        // Americano fixed: matches, wins, total points and average points
+        const matchesTd = document.createElement('td');
+        matchesTd.className = 'stat-col';
+        matchesTd.textContent = entry.matches;
+        const winsTd = document.createElement('td');
+        winsTd.className = 'stat-col';
+        winsTd.textContent = entry.wins;
+        const totalPtsTd = document.createElement('td');
+        totalPtsTd.className = 'stat-col';
+        totalPtsTd.textContent = entry.totalPoints;
+        const avgTd = document.createElement('td');
+        avgTd.className = 'stat-col';
+        avgTd.textContent = entry.avgPoints ? entry.avgPoints.toFixed(1) : '0.0';
+        tr.appendChild(matchesTd);
+        tr.appendChild(winsTd);
+        tr.appendChild(totalPtsTd);
+        tr.appendChild(avgTd);
+      } else {
+        // Set-based fixed/official tournaments: include win percentage, sets, games and difference
+        const matchesTd = document.createElement('td');
+        matchesTd.className = 'stat-col';
+        matchesTd.textContent = entry.matches;
+        const winsTd = document.createElement('td');
+        winsTd.className = 'stat-col';
+        winsTd.textContent = entry.wins;
+        const lossesTd = document.createElement('td');
+        lossesTd.className = 'stat-col';
+        lossesTd.textContent = entry.losses;
+        const totalPlayed = entry.wins + entry.losses;
+        const pct = totalPlayed > 0 ? Math.round((entry.wins / totalPlayed) * 100) : 0;
+        const pctTd = document.createElement('td');
+        pctTd.className = 'stat-col';
+        pctTd.textContent = `${pct}%`;
+        const setsWonTd = document.createElement('td');
+        setsWonTd.className = 'stat-col';
+        setsWonTd.textContent = entry.setsWon;
+        const setsLostTd = document.createElement('td');
+        setsLostTd.className = 'stat-col';
+        setsLostTd.textContent = entry.setsLost;
+        const gamesWonTd = document.createElement('td');
+        gamesWonTd.className = 'stat-col';
+        gamesWonTd.textContent = entry.gamesWon;
+        const gamesLostTd = document.createElement('td');
+        gamesLostTd.className = 'stat-col';
+        gamesLostTd.textContent = entry.gamesLost;
+        const diffTd = document.createElement('td');
+        diffTd.className = 'stat-col';
+        diffTd.textContent = entry.gamesWon - entry.gamesLost;
+        tr.appendChild(matchesTd);
+        tr.appendChild(winsTd);
+        tr.appendChild(lossesTd);
+        tr.appendChild(pctTd);
+        tr.appendChild(setsWonTd);
+        tr.appendChild(setsLostTd);
+        tr.appendChild(gamesWonTd);
+        tr.appendChild(gamesLostTd);
+        tr.appendChild(diffTd);
+      }
     }
     tbody.appendChild(tr);
   });

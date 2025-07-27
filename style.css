@@ -1178,13 +1178,32 @@ table.dark-table.ranking-table td:not(:last-child) {
   table.ranking-table {
     width: 100%;
     min-width: unset;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
   }
   table.match-table th,
   table.match-table td,
   table.ranking-table th,
   table.ranking-table td {
-    padding: 0.4rem 0.5rem;
+    padding: 0.3rem 0.4rem;
+  }
+
+  /* On small screens reduce the minimum widths and font sizes for ranking columns.
+     This helps prevent the left edge from being cut off due to long names
+     or wide numeric columns. */
+  .rank-col {
+    width: 2rem;
+    min-width: 2rem;
+    font-size: 0.7rem;
+  }
+  .name-col {
+    min-width: 4rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+  .stat-col {
+    min-width: 2.5rem;
+    font-size: 0.7rem;
+    text-align: center;
   }
 
   /* On mobile, hide less important columns in the ranking table to reduce
