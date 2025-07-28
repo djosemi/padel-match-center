@@ -12,6 +12,7 @@
 // Global state
 const players = [];
 let tournament = null;
+let ladderState = null;
 // Temporary state used during creation of playoff tournaments to hold
 // unassigned players and other information prior to building the final
 // tournament object.  This is assigned in the playoff branch of the
@@ -30,6 +31,7 @@ const rotatingOptionsEl = document.getElementById('rotating-options');
 const freeOptionsEl = document.getElementById('free-options');
 const matchOptionsEl = document.getElementById('match-options');
 const playoffOptionsEl = document.getElementById('playoff-options');
+const ladderOptionsEl = document.getElementById('ladder-options');
 const handicapOptionsEl = document.getElementById('handicap-options');
 const handicapListEl = document.getElementById('handicap-list');
 
@@ -45,6 +47,7 @@ const secondRoundBtn = document.getElementById('second-round-btn');
 
 // New button to finalize tournament and show final classification
 const finishTournamentBtn = document.getElementById('finish-tournament-btn');
+const nextRoundBtn = document.getElementById('next-round-btn');
 
 // Page containers and navigation
 const page1 = document.getElementById('page1');
@@ -84,6 +87,12 @@ if (finishTournamentBtn) {
   // Update Finish Tournament button with an icon and label (English)
   finishTournamentBtn.innerHTML = '<span class="btn-icon">🏁</span><span class="btn-label">Finish</span>';
   finishTournamentBtn.classList.add('icon-btn');
+}
+
+if (nextRoundBtn) {
+  nextRoundBtn.addEventListener('click', () => {
+    advanceLadderRound();
+  });
 }
 
 // Attach click handler for second round button (only used in fixed partner tournaments)
@@ -289,6 +298,7 @@ function updateTournamentOptions() {
   freeOptionsEl.classList.add('hidden');
   matchOptionsEl.classList.add('hidden');
   playoffOptionsEl.classList.add('hidden');
+  ladderOptionsEl.classList.add('hidden');
   // Populate buttons based on selected tournament type
   if (type === 'match') {
     matchOptionsEl.classList.remove('hidden');
@@ -331,6 +341,9 @@ function updateTournamentOptions() {
     // Build the option buttons and mark the default as active.  Allow even
     // player counts from 4 up to 32 (corresponding to 2 to 16 teams).
     createButtons([4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32], document.getElementById('playoff-players-options'), playoffInput);
+  } else if (type === 'ladder') {
+    ladderOptionsEl.classList.remove('hidden');
+    createButtons([8, 12, 16], document.getElementById('ladder-players-options'), document.getElementById('ladder-players'));
   }
   // Courts options: display for all types
   createButtons([1, 2, 3, 4], document.getElementById('courts-options'), document.getElementById('courts'));
@@ -3054,16 +3067,153 @@ function updateRankingAndSchedule() {
   }
 }
 
+// ----- Ladder tournament helpers -----
+function initLadder(playerList) {
+  ladderState = { players: playerList, rounds: [], currentRound: 0 };
+  ladderState.players.forEach((p, idx) => {
+    p.division = Math.floor(idx / 4);
+    p.lastPartner = null;
+  });
+  generateLadderRound();
+}
+
+function pairDivision(divPlayers) {
+  const arr = divPlayers.slice();
+  if (arr[0].lastPartner === arr[1]?.id || arr[2].lastPartner === arr[3]?.id) {
+    [arr[1], arr[2]] = [arr[2], arr[1]];
+  }
+  return [ [arr[0], arr[1]], [arr[2], arr[3]] ];
+}
+
+function generateLadderRound() {
+  if (!ladderState) return;
+  const divisions = Math.floor(ladderState.players.length / 4);
+  const matches = [];
+  for (let d = 0; d < divisions; d++) {
+    const playersInDiv = ladderState.players.filter((p) => p.division === d);
+    if (playersInDiv.length < 4) continue;
+    const [teamA, teamB] = pairDivision(playersInDiv);
+    matches.push({ division: d, teamA, teamB, score: null });
+  }
+  ladderState.rounds.push(matches);
+}
+
+function displayLadderRound() {
+  if (!ladderState) return;
+  scheduleEl.innerHTML = '';
+  const roundIdx = ladderState.currentRound;
+  const title = document.createElement('h3');
+  title.textContent = `Round ${roundIdx + 1}`;
+  scheduleEl.appendChild(title);
+  const matches = ladderState.rounds[roundIdx];
+  matches.forEach((match, idx) => {
+    const div = document.createElement('div');
+    div.className = 'ladder-division';
+    const ord = match.division + 1;
+    const suf = ord === 1 ? 'st' : ord === 2 ? 'nd' : ord === 3 ? 'rd' : 'th';
+    const h = document.createElement('h4');
+    h.textContent = `${ord}${suf} Division`;
+    div.appendChild(h);
+    const table = document.createElement('table');
+    table.className = 'dark-table match-table ladder-table';
+    const thead = document.createElement('thead');
+    const hr = document.createElement('tr');
+    ['Team A', 'Score', 'Team B', 'Score', 'Actions'].forEach((t) => {
+      const th = document.createElement('th');
+      th.textContent = t;
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    const row = document.createElement('tr');
+    const tdA = document.createElement('td');
+    tdA.innerHTML = `${match.teamA[0].name}<br>${match.teamA[1].name}`;
+    const tdAS = document.createElement('td');
+    const inA = document.createElement('input');
+    inA.type = 'number';
+    if (match.score) inA.value = match.score[0];
+    tdAS.appendChild(inA);
+    const tdB = document.createElement('td');
+    tdB.innerHTML = `${match.teamB[0].name}<br>${match.teamB[1].name}`;
+    const tdBS = document.createElement('td');
+    const inB = document.createElement('input');
+    inB.type = 'number';
+    if (match.score) inB.value = match.score[1];
+    tdBS.appendChild(inB);
+    const tdAct = document.createElement('td');
+    const enterBtn = document.createElement('button');
+    enterBtn.className = 'btn primary';
+    enterBtn.textContent = 'Enter Score';
+    enterBtn.addEventListener('click', () => {
+      const a = parseInt(inA.value, 10);
+      const b = parseInt(inB.value, 10);
+      if (isNaN(a) || isNaN(b)) return;
+      match.score = [a, b];
+      displayLadderRound();
+    });
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'btn secondary';
+    resetBtn.textContent = 'Reset Match';
+    resetBtn.addEventListener('click', () => {
+      match.score = null;
+      displayLadderRound();
+    });
+    tdAct.appendChild(enterBtn);
+    tdAct.appendChild(resetBtn);
+    row.appendChild(tdA);
+    row.appendChild(tdAS);
+    row.appendChild(tdB);
+    row.appendChild(tdBS);
+    row.appendChild(tdAct);
+    tbody.appendChild(row);
+    table.appendChild(tbody);
+    div.appendChild(table);
+    scheduleEl.appendChild(div);
+  });
+  const allDone = matches.every((m) => m.score);
+  if (allDone) nextRoundBtn.classList.remove('hidden');
+  else nextRoundBtn.classList.add('hidden');
+  finishTournamentBtn.classList.remove('hidden');
+}
+
+function advanceLadderRound() {
+  if (!ladderState) return;
+  const matches = ladderState.rounds[ladderState.currentRound];
+  const divisions = Math.floor(ladderState.players.length / 4);
+  matches.forEach((match) => {
+    if (!match.score) return;
+    const winners = match.score[0] > match.score[1] ? match.teamA : match.teamB;
+    const losers = match.score[0] > match.score[1] ? match.teamB : match.teamA;
+    winners.forEach((p, i) => {
+      if (p.division > 0) p.division -= 1;
+      p.lastPartner = winners[1 - i].id;
+    });
+    losers.forEach((p, i) => {
+      if (p.division < divisions - 1) p.division += 1;
+      p.lastPartner = losers[1 - i].id;
+    });
+  });
+  ladderState.currentRound += 1;
+  generateLadderRound();
+  displayLadderRound();
+}
+
 // Display final classification and podium
 function finalizeTournament() {
   if (!tournament) return;
   // Compute final ranking based on tournament type
   let finalRanking;
-  const isRotating = tournament.type === 'rotating' || tournament.type === 'free';
-  if (isRotating) {
-    finalRanking = computeRankingRotating(tournament.schedule);
+  if (tournament.type === 'ladder') {
+    finalRanking = ladderState.players.slice().sort((a, b) => a.division - b.division || a.name.localeCompare(b.name));
+    finalRanking = finalRanking.map((p) => ({ name: p.name }));
   } else {
-    finalRanking = computeRankingFixed(tournament.schedule);
+    const isRotating = tournament.type === 'rotating' || tournament.type === 'free';
+    if (isRotating) {
+      finalRanking = computeRankingRotating(tournament.schedule);
+    } else {
+      finalRanking = computeRankingFixed(tournament.schedule);
+    }
   }
   // Create overlay
   const overlay = document.createElement('div');
@@ -3278,6 +3428,20 @@ tournamentForm.addEventListener('submit', (e) => {
     // Do not proceed further in this handler; the overlay will handle
     // creation of the playoff tournament once an option is selected.
     return;
+  } else if (type === 'ladder') {
+    const numPlayers = parseInt(document.getElementById('ladder-players').value, 10);
+    if (numPlayers < 8 || numPlayers > 16 || numPlayers % 4 !== 0) {
+      alert('Ladder tournaments require between 8 and 16 players in multiples of 4.');
+      return;
+    }
+    if (players.length < numPlayers) {
+      alert(`You need at least ${numPlayers} players.`);
+      return;
+    }
+    const selected = shuffle(players.slice()).slice(0, numPlayers);
+    initLadder(selected);
+    schedule = ladderState.rounds;
+    infoHtml = `<p>Ladder tournament with ${selected.length} players.</p>`;
   }
   // Create tournament object
   tournament = {
@@ -3302,12 +3466,18 @@ tournamentForm.addEventListener('submit', (e) => {
   }
   // Populate tournament info
   tournamentInfoEl.innerHTML = infoHtml;
-  // Display schedule and ranking
-  displaySchedule(schedule);
-  updateRankingAndSchedule();
-  // Always show the Add Match button once a tournament is created.
-  // For free tournaments it will prompt for names, otherwise it will allow selecting players.
-  addMatchBtn.classList.remove('hidden');
+  // Display schedule according to tournament type
+  if (type === 'ladder') {
+    displayLadderRound();
+    addMatchBtn.classList.add('hidden');
+    secondRoundBtn.classList.add('hidden');
+    nextRoundBtn.classList.add('hidden');
+  } else {
+    displaySchedule(schedule);
+    updateRankingAndSchedule();
+    // Always show the Add Match button once a tournament is created.
+    addMatchBtn.classList.remove('hidden');
+  }
 
   // Show finish tournament button
   finishTournamentBtn.classList.remove('hidden');
