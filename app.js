@@ -307,6 +307,9 @@ function updateTournamentOptions() {
      * to pick any number of players and our scheduling algorithm will handle byes fairly.  
      */
     createButtons([4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], document.getElementById('rotating-players-options'), document.getElementById('rotating-players'));
+  } else if (type === 'ladder') {
+    // Ladder tournaments use all players and manual match entry
+    freeOptionsEl.classList.add('hidden');
   } else if (type === 'free') {
     // In free tournaments we do not require a player count selection.  All
     // registered players are eligible (up to a maximum handled in the
@@ -1848,6 +1851,71 @@ function computeRankingRotating(schedule) {
   return ranking;
 }
 
+// Compute ranking for ladder tournaments (player-based)
+function computeRankingLadder(schedule, players) {
+  const stats = new Map();
+  // Initialize stats for all participants so players with no matches still appear
+  players.forEach((p) => {
+    stats.set(p.id, { name: p.name, matches: 0, wins: 0, points: 0 });
+  });
+  schedule.forEach((round) => {
+    round.forEach((match) => {
+      const { teamA, teamB, score } = match;
+      if (!score) return;
+      const isAmericano = !Array.isArray(score[0]);
+      if (isAmericano && tournament && tournament.useAmericano) {
+        const ptsA = score[0] || 0;
+        const ptsB = score[1] || 0;
+        let winner = null;
+        if (ptsA > ptsB) winner = 'A';
+        else if (ptsB > ptsA) winner = 'B';
+        const bonusA = winner === 'A' ? 2 : winner === null ? 1 : 0;
+        const bonusB = winner === 'B' ? 2 : winner === null ? 1 : 0;
+        teamA.forEach((p) => {
+          const st = stats.get(p.id);
+          st.matches++;
+          st.points += ptsA + bonusA;
+          if (winner === 'A') st.wins++;
+        });
+        teamB.forEach((p) => {
+          const st = stats.get(p.id);
+          st.matches++;
+          st.points += ptsB + bonusB;
+          if (winner === 'B') st.wins++;
+        });
+      } else {
+        let setsWonA = 0;
+        let setsWonB = 0;
+        score.forEach(([a, b]) => {
+          if (a > b) setsWonA++; else if (b > a) setsWonB++;
+        });
+        const winner = setsWonA > setsWonB ? 'A' : setsWonB > setsWonA ? 'B' : null;
+        const pointsA = winner === 'A' ? 1 : 0;
+        const pointsB = winner === 'B' ? 1 : 0;
+        teamA.forEach((p) => {
+          const st = stats.get(p.id);
+          st.matches++;
+          st.points += pointsA;
+          if (winner === 'A') st.wins++;
+        });
+        teamB.forEach((p) => {
+          const st = stats.get(p.id);
+          st.matches++;
+          st.points += pointsB;
+          if (winner === 'B') st.wins++;
+        });
+      }
+    });
+  });
+  const ranking = Array.from(stats.values());
+  ranking.sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points;
+    if (b.wins !== a.wins) return b.wins - a.wins;
+    return a.name.localeCompare(b.name);
+  });
+  return ranking;
+}
+
 // Determine an emoji representing a player's mood based on their ranking position.
 // Top positions get excited faces, middle positions get neutral faces, and bottom positions get anxious or angry faces.
 // Return the filename of the custom emoticon image based on ranking position.
@@ -2860,10 +2928,50 @@ function displayRanking(ranking, isRotating) {
   }
 }
 
+// Display ranking table for ladder tournaments
+function displayRankingLadder(ranking) {
+  rankingEl.innerHTML = '';
+  const table = document.createElement('table');
+  table.className = 'dark-table ranking-table';
+  const thead = document.createElement('thead');
+  const trh = document.createElement('tr');
+  ['Rank', 'Player', 'Matches', 'Wins', 'Points'].forEach((txt) => {
+    const th = document.createElement('th');
+    th.textContent = txt;
+    trh.appendChild(th);
+  });
+  thead.appendChild(trh);
+  table.appendChild(thead);
+  const tbody = document.createElement('tbody');
+  ranking.forEach((entry, idx) => {
+    const tr = document.createElement('tr');
+    const rtd = document.createElement('td');
+    rtd.textContent = `${idx + 1}`;
+    tr.appendChild(rtd);
+    const nameTd = document.createElement('td');
+    nameTd.textContent = entry.name.toUpperCase();
+    tr.appendChild(nameTd);
+    const mTd = document.createElement('td');
+    mTd.textContent = entry.matches;
+    const wTd = document.createElement('td');
+    wTd.textContent = entry.wins;
+    const pTd = document.createElement('td');
+    pTd.textContent = entry.points;
+    tr.appendChild(mTd);
+    tr.appendChild(wTd);
+    tr.appendChild(pTd);
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  rankingEl.appendChild(table);
+  const firstRow = tbody.querySelector('tr');
+  if (firstRow) firstRow.classList.add('winner-row');
+}
+
 // Add a new match for free tournaments via user prompts
 function addMatchFree() {
-  // Only allow adding matches for free tournaments
-  if (!tournament || tournament.type !== 'free') {
+  // Only allow adding matches for free or ladder tournaments
+  if (!tournament || (tournament.type !== 'free' && tournament.type !== 'ladder')) {
     return;
   }
   // Use interactive modal to select teams
@@ -3030,10 +3138,15 @@ function updateRankingAndSchedule() {
       }
     } else {
       let ranking;
-      // Rotating and free tournaments always use player‑based ranking
-      if (tournament.type === 'rotating' || tournament.type === 'free') {
-        ranking = computeRankingRotating(tournament.schedule);
-        displayRanking(ranking, true);
+      // Rotating, ladder and free tournaments use player-based ranking
+      if (tournament.type === 'rotating' || tournament.type === 'free' || tournament.type === 'ladder') {
+        if (tournament.type === 'ladder') {
+          ranking = computeRankingLadder(tournament.schedule, tournament.players || players);
+          displayRankingLadder(ranking);
+        } else {
+          ranking = computeRankingRotating(tournament.schedule);
+          displayRanking(ranking, true);
+        }
       } else {
         // For match and fixed tournaments, use team‑based ranking
         ranking = computeRankingFixed(tournament.schedule);
@@ -3059,8 +3172,11 @@ function finalizeTournament() {
   if (!tournament) return;
   // Compute final ranking based on tournament type
   let finalRanking;
-  const isRotating = tournament.type === 'rotating' || tournament.type === 'free';
-  if (isRotating) {
+  const isRotating =
+    tournament.type === 'rotating' || tournament.type === 'free' || tournament.type === 'ladder';
+  if (tournament.type === 'ladder') {
+    finalRanking = computeRankingLadder(tournament.schedule, tournament.players || players);
+  } else if (isRotating) {
     finalRanking = computeRankingRotating(tournament.schedule);
   } else {
     finalRanking = computeRankingFixed(tournament.schedule);
@@ -3188,6 +3304,7 @@ tournamentForm.addEventListener('submit', (e) => {
   let schedule = [];
   let infoHtml = '';
   let teams = [];
+  let selectedPlayers = [];
   if (type === 'match') {
     if (players.length !== 4) {
       alert('Match requires exactly 4 players.');
@@ -3241,6 +3358,20 @@ tournamentForm.addEventListener('submit', (e) => {
     const selected = shuffle(players.slice()).slice(0, numPlayers);
     schedule = generateScheduleRotating(selected, courts);
     infoHtml = `<p>Rotating partner tournament with ${selected.length} players and ${courts} court(s).</p>`;
+  } else if (type === 'ladder') {
+    let numPlayers = players.length;
+    if (numPlayers < 2) {
+      alert('Ladder tournaments require at least 2 players.');
+      return;
+    }
+    if (numPlayers > 30) {
+      alert('Ladder tournaments allow a maximum of 30 players. Please remove some players.');
+      return;
+    }
+    selectedPlayers = shuffle(players.slice()).slice(0, numPlayers);
+    schedule = [];
+    teams = [];
+    infoHtml = `<p>Ladder tournament with ${selectedPlayers.length} players. Add matches manually.</p>`;
   } else if (type === 'free') {
     // Free tournaments include all registered players up to a maximum of 30.
     let numPlayers = players.length;
@@ -3290,6 +3421,9 @@ tournamentForm.addEventListener('submit', (e) => {
     useHandicap,
     courts,
   };
+  if (type === 'ladder') {
+    tournament.players = selectedPlayers.slice();
+  }
   // If this is a playoff tournament, incorporate additional state used for
   // manual team assignment into the tournament object.  The tempPlayoffState
   // object is populated above in the playoff branch.  We clone the arrays to
