@@ -359,6 +359,16 @@ table.dark-table td {
   background-color: transparent;
 }
 
+/* Ladder tournament styles */
+.ladder-division {
+  margin-bottom: 1rem;
+}
+
+.ladder-table input[type="number"] {
+  width: 3rem;
+  text-align: center;
+}
+
 /* Add vertical separators between columns for dark tables */
 table.dark-table th:not(:last-child),
 table.dark-table td:not(:last-child) {
