@@ -27,6 +27,7 @@ const tournamentForm = document.getElementById('tournament-form');
 const tournamentTypeSelect = document.getElementById('tournament-type');
 const fixedOptionsEl = document.getElementById('fixed-options');
 const rotatingOptionsEl = document.getElementById('rotating-options');
+const ladderOptionsEl = document.getElementById('ladder-options');
 const freeOptionsEl = document.getElementById('free-options');
 const matchOptionsEl = document.getElementById('match-options');
 const playoffOptionsEl = document.getElementById('playoff-options');
@@ -42,6 +43,7 @@ const addMatchBtn = document.getElementById('add-match-btn');
 
 // Button for adding a second round of matches (fixed partner tournaments)
 const secondRoundBtn = document.getElementById('second-round-btn');
+const newRoundBtn = document.getElementById('new-round-btn');
 
 // New button to finalize tournament and show final classification
 const finishTournamentBtn = document.getElementById('finish-tournament-btn');
@@ -90,6 +92,13 @@ if (finishTournamentBtn) {
 if (secondRoundBtn) {
   secondRoundBtn.addEventListener('click', () => {
     addSecondRound();
+  });
+}
+
+// New round for ladder tournaments
+if (newRoundBtn) {
+  newRoundBtn.addEventListener('click', () => {
+    addLadderRound();
   });
 }
 
@@ -286,6 +295,7 @@ function updateTournamentOptions() {
   const type = tournamentTypeSelect.value;
   fixedOptionsEl.classList.add('hidden');
   rotatingOptionsEl.classList.add('hidden');
+  ladderOptionsEl.classList.add('hidden');
   freeOptionsEl.classList.add('hidden');
   matchOptionsEl.classList.add('hidden');
   playoffOptionsEl.classList.add('hidden');
@@ -307,6 +317,9 @@ function updateTournamentOptions() {
      * to pick any number of players and our scheduling algorithm will handle byes fairly.  
      */
     createButtons([4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], document.getElementById('rotating-players-options'), document.getElementById('rotating-players'));
+  } else if (type === 'ladder') {
+    ladderOptionsEl.classList.remove('hidden');
+    createButtons([8, 12, 16], document.getElementById('ladder-players-options'), document.getElementById('ladder-players'));
   } else if (type === 'free') {
     // In free tournaments we do not require a player count selection.  All
     // registered players are eligible (up to a maximum handled in the
@@ -1610,6 +1623,24 @@ function createPlayoffRandom(selectedPlayers, numPlayers, sets, useAmericano, am
   page3.classList.remove('hidden');
 }
 
+// Determine winner side from a score array used across ranking functions
+function getWinner(score) {
+  if (!score) return null;
+  if (Array.isArray(score[0])) {
+    let setsA = 0;
+    let setsB = 0;
+    score.forEach(([a, b]) => {
+      if (a > b) setsA++; else if (b > a) setsB++;
+    });
+    if (setsA > setsB) return 'A';
+    if (setsB > setsA) return 'B';
+    return null;
+  }
+  if (score[0] > score[1]) return 'A';
+  if (score[1] > score[0]) return 'B';
+  return null;
+}
+
 // Compute ranking for tournaments with fixed partner or match type (based on wins and sets)
 function computeRankingFixed(schedule) {
   // Map storing aggregated statistics for each team
@@ -1846,6 +1877,172 @@ function computeRankingRotating(schedule) {
     });
   }
   return ranking;
+}
+
+// Compute ranking for ladder tournaments
+function computeRankingLadder(schedule, courts) {
+  const pointsTable = {
+    2: { 1: 2, 2: 1 },
+    3: { 1: 2, 2: 1.5, 3: 1 },
+    4: { 1: 2, 2: 1.5, 3: 1, 4: 0.5 },
+  };
+  const stats = new Map();
+  schedule.forEach((round) => {
+    round.forEach((match) => {
+      const playersA = match.teamA || [];
+      const playersB = match.teamB || [];
+      const allPlayers = playersA.concat(playersB);
+      allPlayers.forEach((p) => {
+        if (!stats.has(p.id)) {
+          stats.set(p.id, { name: p.name, matches: 0, wins: 0, points: 0 });
+        }
+      });
+      if (!match.score) return;
+      const winner = getWinner(match.score);
+      const pts = pointsTable[courts][match.court] || 0;
+      playersA.forEach((p) => stats.get(p.id).matches++);
+      playersB.forEach((p) => stats.get(p.id).matches++);
+      if (winner === 'A') {
+        playersA.forEach((p) => {
+          const st = stats.get(p.id);
+          st.wins++;
+          st.points += pts;
+        });
+      } else if (winner === 'B') {
+        playersB.forEach((p) => {
+          const st = stats.get(p.id);
+          st.wins++;
+          st.points += pts;
+        });
+      }
+    });
+  });
+  const ranking = Array.from(stats.values());
+  ranking.sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points;
+    if (b.wins !== a.wins) return b.wins - a.wins;
+    return a.name.localeCompare(b.name);
+  });
+  return ranking;
+}
+
+// Helper to pair players within a division avoiding previous partners
+function pairLadderPlayers(players, lastPartners) {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const arr = shuffle(players.slice());
+    const teamA = [arr[0], arr[1]];
+    const teamB = [arr[2], arr[3]];
+    const repeat =
+      (lastPartners.get(teamA[0].id) === teamA[1].id) ||
+      (lastPartners.get(teamA[1].id) === teamA[0].id) ||
+      (lastPartners.get(teamB[0].id) === teamB[1].id) ||
+      (lastPartners.get(teamB[1].id) === teamB[0].id);
+    if (!repeat) {
+      return [teamA, teamB];
+    }
+  }
+  const arr = shuffle(players.slice());
+  return [[arr[0], arr[1]], [arr[2], arr[3]]];
+}
+
+// Create initial ladder tournament structure
+function createLadderTournament(selected, courts) {
+  const divisions = [];
+  const lastPartners = new Map();
+  const firstRound = [];
+  for (let c = 0; c < courts; c++) {
+    const group = selected.slice(c * 4, c * 4 + 4);
+    divisions[c] = group.slice();
+    const [teamA, teamB] = pairLadderPlayers(group, lastPartners);
+    teamA.forEach((p) => lastPartners.set(p.id, teamA[1 - teamA.indexOf(p)].id));
+    teamB.forEach((p) => lastPartners.set(p.id, teamB[1 - teamB.indexOf(p)].id));
+    firstRound.push({ round: 1, court: c + 1, teamA, teamB, score: null });
+  }
+  return {
+    type: 'ladder',
+    courts,
+    schedule: [firstRound],
+    divisions,
+    lastPartners,
+    sets: 3,
+    useAmericano: false,
+  };
+}
+
+// Generate next round for ladder tournament based on previous results
+function addLadderRound() {
+  if (!tournament || tournament.type !== 'ladder') return;
+  const lastRound = tournament.schedule[tournament.schedule.length - 1];
+  if (!lastRound.every((m) => m.score)) return;
+  const courts = tournament.courts;
+  const nextDivs = Array.from({ length: courts }, () => []);
+  lastRound.forEach((match) => {
+    const idx = match.court - 1;
+    const winnerSide = getWinner(match.score);
+    const winnerTeam = winnerSide === 'A' ? match.teamA : match.teamB;
+    const loserTeam = winnerSide === 'A' ? match.teamB : match.teamA;
+    const up = Math.max(0, idx - 1);
+    const down = Math.min(courts - 1, idx + 1);
+    nextDivs[up].push(...winnerTeam);
+    nextDivs[down].push(...loserTeam);
+  });
+  tournament.divisions = nextDivs.map((d) => d.slice());
+  const newRound = [];
+  for (let c = 0; c < courts; c++) {
+    const group = tournament.divisions[c];
+    const [teamA, teamB] = pairLadderPlayers(group, tournament.lastPartners);
+    teamA.forEach((p) => tournament.lastPartners.set(p.id, teamA[1 - teamA.indexOf(p)].id));
+    teamB.forEach((p) => tournament.lastPartners.set(p.id, teamB[1 - teamB.indexOf(p)].id));
+    newRound.push({
+      round: tournament.schedule.length + 1,
+      court: c + 1,
+      teamA,
+      teamB,
+      score: null,
+    });
+  }
+  tournament.schedule.push(newRound);
+  updateRankingAndSchedule();
+}
+
+// Display simplified ranking table for ladder tournaments
+function displayRankingLadder(ranking) {
+  rankingEl.innerHTML = '';
+  const table = document.createElement('table');
+  table.className = 'dark-table ranking-table';
+  const thead = document.createElement('thead');
+  const trh = document.createElement('tr');
+  ['Rank', 'Player', 'Matches', 'Wins', 'Points'].forEach((txt) => {
+    const th = document.createElement('th');
+    th.textContent = txt;
+    trh.appendChild(th);
+  });
+  thead.appendChild(trh);
+  table.appendChild(thead);
+  const tbody = document.createElement('tbody');
+  ranking.forEach((entry, idx) => {
+    const tr = document.createElement('tr');
+    const rtd = document.createElement('td');
+    rtd.textContent = `${idx + 1}º`;
+    tr.appendChild(rtd);
+    const ntd = document.createElement('td');
+    ntd.textContent = entry.name.toUpperCase();
+    tr.appendChild(ntd);
+    const mtd = document.createElement('td');
+    mtd.textContent = entry.matches;
+    tr.appendChild(mtd);
+    const wtd = document.createElement('td');
+    wtd.textContent = entry.wins;
+    tr.appendChild(wtd);
+    const ptd = document.createElement('td');
+    ptd.textContent = entry.points;
+    tr.appendChild(ptd);
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  rankingEl.appendChild(table);
+  const firstRow = tbody.querySelector('tr');
+  if (firstRow) firstRow.classList.add('winner-row');
 }
 
 // Determine an emoji representing a player's mood based on their ranking position.
@@ -3030,16 +3227,23 @@ function updateRankingAndSchedule() {
       }
     } else {
       let ranking;
-      // Rotating and free tournaments always use player‑based ranking
-      if (tournament.type === 'rotating' || tournament.type === 'free') {
+      if (tournament.type === 'ladder') {
+        ranking = computeRankingLadder(tournament.schedule, tournament.courts);
+        displayRankingLadder(ranking);
+        const lastRound = tournament.schedule[tournament.schedule.length - 1];
+        const allDone = lastRound.every((m) => m.score);
+        if (allDone) newRoundBtn.classList.remove('hidden');
+        else newRoundBtn.classList.add('hidden');
+      } else if (tournament.type === 'rotating' || tournament.type === 'free') {
         ranking = computeRankingRotating(tournament.schedule);
         displayRanking(ranking, true);
+        newRoundBtn.classList.add('hidden');
       } else {
         // For match and fixed tournaments, use team‑based ranking
         ranking = computeRankingFixed(tournament.schedule);
         displayRanking(ranking, false);
+        newRoundBtn.classList.add('hidden');
       }
-      // Ensure ranking element is visible for non‑playoff tournaments
       if (rankingEl) {
         rankingEl.classList.remove('hidden');
       }
@@ -3059,8 +3263,9 @@ function finalizeTournament() {
   if (!tournament) return;
   // Compute final ranking based on tournament type
   let finalRanking;
-  const isRotating = tournament.type === 'rotating' || tournament.type === 'free';
-  if (isRotating) {
+  if (tournament.type === 'ladder') {
+    finalRanking = computeRankingLadder(tournament.schedule, tournament.courts);
+  } else if (tournament.type === 'rotating' || tournament.type === 'free') {
     finalRanking = computeRankingRotating(tournament.schedule);
   } else {
     finalRanking = computeRankingFixed(tournament.schedule);
@@ -3174,7 +3379,7 @@ tournamentForm.addEventListener('submit', (e) => {
     return;
   }
   const type = tournamentTypeSelect.value;
-  const courts = parseInt(document.getElementById('courts').value, 10) || 1;
+  let courts = parseInt(document.getElementById('courts').value, 10) || 1;
   // Determine scoring type from hidden input: sets or Americano
   const useAmericano = document.getElementById('scoring-type').value === 'americano';
   const useHandicap = document.getElementById('use-handicap').checked;
@@ -3241,6 +3446,21 @@ tournamentForm.addEventListener('submit', (e) => {
     const selected = shuffle(players.slice()).slice(0, numPlayers);
     schedule = generateScheduleRotating(selected, courts);
     infoHtml = `<p>Rotating partner tournament with ${selected.length} players and ${courts} court(s).</p>`;
+  } else if (type === 'ladder') {
+    const numPlayers = parseInt(document.getElementById('ladder-players').value, 10);
+    if (![8, 12, 16].includes(numPlayers)) {
+      alert('Ladder tournaments require 8, 12 or 16 players.');
+      return;
+    }
+    if (players.length < numPlayers) {
+      alert(`You need at least ${numPlayers} players.`);
+      return;
+    }
+    const selected = shuffle(players.slice()).slice(0, numPlayers);
+    tournament = createLadderTournament(selected, numPlayers / 4);
+    schedule = tournament.schedule;
+    courts = numPlayers / 4;
+    infoHtml = `<p>Ladder tournament with ${numPlayers} players.</p>`;
   } else if (type === 'free') {
     // Free tournaments include all registered players up to a maximum of 30.
     let numPlayers = players.length;
@@ -3279,44 +3499,52 @@ tournamentForm.addEventListener('submit', (e) => {
     // creation of the playoff tournament once an option is selected.
     return;
   }
-  // Create tournament object
-  tournament = {
-    type,
-    teams,
-    schedule,
-    sets,
-    useAmericano,
-    americanoPoints,
-    useHandicap,
-    courts,
-  };
-  // If this is a playoff tournament, incorporate additional state used for
-  // manual team assignment into the tournament object.  The tempPlayoffState
-  // object is populated above in the playoff branch.  We clone the arrays to
-  // avoid accidental external mutation.
-  if (type === 'playoff' && typeof tempPlayoffState !== 'undefined') {
-    tournament.unassignedPlayers = tempPlayoffState.unassignedPlayers.slice();
-    tournament.assignedPlayers = tempPlayoffState.assignedPlayers.slice();
-    tournament.nextTeamId = tempPlayoffState.nextTeamId;
-    delete tempPlayoffState;
+  // Create tournament object for all formats except ladder (already created)
+  if (type !== 'ladder') {
+    tournament = {
+      type,
+      teams,
+      schedule,
+      sets,
+      useAmericano,
+      americanoPoints,
+      useHandicap,
+      courts,
+    };
+    // If this is a playoff tournament, incorporate additional state used for
+    // manual team assignment into the tournament object.  The tempPlayoffState
+    // object is populated above in the playoff branch.  We clone the arrays to
+    // avoid accidental external mutation.
+    if (type === 'playoff' && typeof tempPlayoffState !== 'undefined') {
+      tournament.unassignedPlayers = tempPlayoffState.unassignedPlayers.slice();
+      tournament.assignedPlayers = tempPlayoffState.assignedPlayers.slice();
+      tournament.nextTeamId = tempPlayoffState.nextTeamId;
+      delete tempPlayoffState;
+    }
   }
   // Populate tournament info
   tournamentInfoEl.innerHTML = infoHtml;
   // Display schedule and ranking
   displaySchedule(schedule);
   updateRankingAndSchedule();
-  // Always show the Add Match button once a tournament is created.
-  // For free tournaments it will prompt for names, otherwise it will allow selecting players.
-  addMatchBtn.classList.remove('hidden');
+  if (type === 'ladder') {
+    addMatchBtn.classList.add('hidden');
+    secondRoundBtn.classList.add('hidden');
+    newRoundBtn.classList.add('hidden');
+  } else {
+    // Always show the Add Match button once a tournament is created.
+    // For free tournaments it will prompt for names, otherwise it will allow selecting players.
+    addMatchBtn.classList.remove('hidden');
+    if (type === 'fixed') {
+      secondRoundBtn.classList.remove('hidden');
+    } else {
+      secondRoundBtn.classList.add('hidden');
+    }
+    newRoundBtn.classList.add('hidden');
+  }
 
   // Show finish tournament button
   finishTournamentBtn.classList.remove('hidden');
-  // Show or hide second round button depending on tournament type
-  if (type === 'fixed') {
-    secondRoundBtn.classList.remove('hidden');
-  } else {
-    secondRoundBtn.classList.add('hidden');
-  }
   // Switch to page3: hide configuration page and show tournament details page
   page2.classList.add('hidden');
   page3.classList.remove('hidden');
